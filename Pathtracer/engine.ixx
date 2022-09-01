@@ -4,8 +4,7 @@ module;
 
 export module engine;
 
-export class PathtracerEngine
-{
+export class PathtracerEngine {
 public:
 	PathtracerEngine() {}
 

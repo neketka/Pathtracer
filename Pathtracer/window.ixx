@@ -9,8 +9,7 @@ module;
 export module window;
 
 export template <class TEngine>
-class Window
-{
+class Window {
 public:
 	Window(std::string title, int w, int h, TEngine &engine) : m_engInst(engine) {
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -44,10 +43,8 @@ public:
 		int samples = 0;
 		float sampledFrametime = 0;
 
-		while (m_running)
-		{
-			while (SDL_PollEvent(&e))
-			{
+		while (m_running) {
+			while (SDL_PollEvent(&e)) {
 				switch (e.type)
 				{
 				case SDL_QUIT:
@@ -56,8 +53,7 @@ public:
 				}
 			}
 
-			if (!m_running)
-			{
+			if (!m_running) {
 				m_engInst.stop();
 				break;
 			}
@@ -66,8 +62,7 @@ public:
 			std::chrono::duration<float> timeSince = curFrame - lastFrame;
 			float secSince = timeSince.count();
 
-			if (sampledFrametime >= 1.0)
-			{
+			if (sampledFrametime >= 1.0) {
 				fps = samples / sampledFrametime;
 				samples = 0;
 				sampledFrametime = 0;
