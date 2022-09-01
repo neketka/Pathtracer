@@ -8,6 +8,12 @@
     <ClCompile Include="window.ixx">
       <Filter>graphics</Filter>
     </ClCompile>
+    <ClCompile Include="buffer.ixx">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="texture.ixx">
+      <Filter>graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

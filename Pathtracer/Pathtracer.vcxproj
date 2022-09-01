@@ -142,8 +142,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="buffer.ixx" />
     <ClCompile Include="engine.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="texture.ixx" />
     <ClCompile Include="window.ixx" />
   </ItemGroup>
   <ItemGroup>

@@ -32,6 +32,7 @@ public:
 	}
 
 	void start() {
+		glewInit();
 		m_engInst.start();
 
 		SDL_Event e;
