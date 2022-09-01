@@ -16,5 +16,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	w.start();
 
+	SDL_Quit();
+
 	return 0;
 }

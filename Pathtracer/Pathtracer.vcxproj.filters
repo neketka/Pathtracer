@@ -2,9 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="engine.ixx">
-      <Filter>graphics</Filter>
-    </ClCompile>
     <ClCompile Include="window.ixx">
       <Filter>graphics</Filter>
     </ClCompile>
@@ -14,6 +11,18 @@
     <ClCompile Include="texture.ixx">
       <Filter>graphics</Filter>
     </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="shader.ixx">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="engine.ixx">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="pass.ixx">
+      <Filter>graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
@@ -21,6 +30,9 @@
   <ItemGroup>
     <Filter Include="graphics">
       <UniqueIdentifier>{6ca4d018-6d75-4db0-994e-1282203fab0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="engine">
+      <UniqueIdentifier>{0e9edcc3-9aa4-4dc2-abf8-5750069a7773}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

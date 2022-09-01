@@ -145,7 +145,10 @@
     <ClCompile Include="buffer.ixx" />
     <ClCompile Include="engine.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="pass.ixx" />
+    <ClCompile Include="shader.ixx" />
     <ClCompile Include="texture.ixx" />
+    <ClCompile Include="util.cpp" />
     <ClCompile Include="window.ixx" />
   </ItemGroup>
   <ItemGroup>

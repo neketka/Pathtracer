@@ -20,7 +20,7 @@ public:
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
 
-		m_window = SDL_CreateWindow(title.c_str(), 100, 100, w, h, SDL_WINDOW_OPENGL);
+		m_window = SDL_CreateWindow(title.c_str(), 100, 100, w, h, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 		m_context = SDL_GL_CreateContext(m_window);
 		m_running = true;
 
@@ -33,6 +33,11 @@ public:
 
 	void start() {
 		glewInit();
+
+		int w, h;
+		SDL_GetWindowSize(m_window, &w, &h);
+
+		m_engInst.resize(w, h);
 		m_engInst.start();
 
 		SDL_Event e;
@@ -46,11 +51,15 @@ public:
 
 		while (m_running) {
 			while (SDL_PollEvent(&e)) {
-				switch (e.type)
-				{
-				case SDL_QUIT:
+				if (e.type == SDL_QUIT) {
 					m_running = false;
-					break;
+				} else if (e.type == SDL_WINDOWEVENT) {
+					switch (e.window.event) { 
+					case SDL_WINDOWEVENT_RESIZED:
+						w = e.window.data1, h = e.window.data2;
+						m_engInst.resize(w, h);
+						break;
+					}		
 				}
 			}
 
@@ -80,6 +89,10 @@ public:
 
 			SDL_GL_SwapWindow(m_window);
 		}
+	}
+
+	void stop() {
+		m_running = false;
 	}
 
 private:
