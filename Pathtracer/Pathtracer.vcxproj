@@ -147,7 +147,6 @@
     <ClCompile Include="window.ixx" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" />
     <None Include="vcpkg.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
