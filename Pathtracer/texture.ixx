@@ -102,8 +102,8 @@ public:
 		return *this;
 	}
 
-	GpuRenderTarget build() {
-		return GpuRenderTarget(m_colors, m_depth, m_hasDepth);
+	GpuRenderTarget *build() {
+		return new GpuRenderTarget(m_colors, m_depth, m_hasDepth);
 	}
 private:
 	std::vector<GLuint> m_colors;

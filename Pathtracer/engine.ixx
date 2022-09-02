@@ -10,6 +10,7 @@ export module engine;
 import buffer;
 import shader;
 import pass;
+import texture;
 
 export class PathtracerEngine {
 public:
@@ -32,6 +33,14 @@ public:
 	void resize(int w, int h) {
 		m_w = w;
 		m_h = h;
+
+		if (m_target) {
+			delete m_target;
+			delete m_renderTarget;
+		}
+
+		m_target = new GpuTexture<glm::vec3>(w, h, false);
+		m_renderTarget = GpuRenderTargetBuilder().attachColor(m_target).build();
 	}
 
 	void tick(float deltaT, float fps) {
@@ -40,7 +49,7 @@ public:
 	void render(float deltaT, float fps) {
 		GpuRenderPass pass(
 			m_program,
-			std::forward<GpuProgramState>(GpuProgramState().setUniform(0, m_time)),
+			std::forward<GpuProgramState>(GpuProgramState().uniform(0, m_time)),
 			std::forward<GpuRenderState>(GpuRenderState().viewport(0, 0, m_w, m_h).vertexArray(m_vao))
 		);
 
@@ -61,6 +70,8 @@ private:
 	GpuBuffer<glm::vec2> *m_buffer;
 	GpuVertexArray<glm::vec2> *m_vao;
 	GpuProgram *m_program;
+	GpuTexture<glm::vec3> *m_target = nullptr;
+	GpuRenderTarget *m_renderTarget;
 
 	std::string vShader = R"glsl(
 

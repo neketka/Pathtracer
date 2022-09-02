@@ -99,65 +99,65 @@ public:
 	GpuProgramState() {}
 
 	template<class T>
-	GpuProgramState& attachStorageBuffer(int location, GpuBuffer<T> *buffer) {
+	GpuProgramState& storageBuffer(int location, GpuBuffer<T> *buffer) {
 		m_buffers.push_back({ location, buffer->id(), GL_SHADER_STORAGE_BUFFER });
 
 		return *this;
 	}
 
 	template<class T>
-	GpuProgramState& attachUniformBuffer(int location, GpuBuffer<T> *buffer) {
+	GpuProgramState& uniformBuffer(int location, GpuBuffer<T> *buffer) {
 		m_buffers.push_back({ location, buffer->id(), GL_UNIFORM_BUFFER });
 
 		return *this;
 	}
 
 	template<class T>
-	GpuProgramState& attachImage(int location, GpuTexture<T> *texture) {
+	GpuProgramState& image(int location, GpuTexture<T> *texture) {
 		m_imageUnits.push_back(texture->id());
 		m_ints.push_back({ location, m_imgUnits++ });
 
 		return *this;
 	}
 	
-	GpuProgramState& setUniform(int location, int i) {
+	GpuProgramState& uniform(int location, int i) {
 		m_ints.push_back({ location, i });
 
 		return *this;
 	}
 
-	GpuProgramState& setUniform(int location, float f) {
+	GpuProgramState& uniform(int location, float f) {
 		m_floats.push_back({ location, f });
 
 		return *this;
 	}
 
-	GpuProgramState& setUniform(int location, glm::vec2 v2) {
+	GpuProgramState& uniform(int location, glm::vec2 v2) {
 		m_v2s.push_back({ location, v2 });
 
 		return *this;
 	}
 
-	GpuProgramState& setUniform(int location, glm::vec3 v3) {
+	GpuProgramState& uniform(int location, glm::vec3 v3) {
 		m_v3s.push_back({ location, v3 });
 
 		return *this;
 	}
 
-	GpuProgramState& setUniform(int location, glm::vec4 v4) {
+	GpuProgramState& uniform(int location, glm::vec4 v4) {
 		m_v4s.push_back({ location, v4 });
 
 		return *this;
 	}
 
-	GpuProgramState& setUniform(int location, glm::mat4 m4) {
+	GpuProgramState& uniform(int location, glm::mat4 m4) {
 		m_m4s.push_back({ location, m4 });
 
 		return *this;
 	}
 
 	template<class T>
-	GpuProgramState& setUniform(int location, GpuTexture<T> *texture) {
+	GpuProgramState& uniform(int location, GpuTexture<T> *texture) {
 		m_textureUnits.push_back(texture->id());
 		m_ints.push_back({ location, m_texUnits++ });
 
