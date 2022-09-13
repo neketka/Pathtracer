@@ -16,7 +16,11 @@ layout(rgba32f) uniform image2D target;
 
 void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-	imageStore(target, pos, vec4(1.0, 0.0, 1.0, 1.0));
+	ivec2 size = ivec2(gl_NumWorkGroups.xy);
+
+	vec2 color = vec2(pos) / vec2(size);
+
+	imageStore(target, pos, vec4(color, 0.0, 1.0));
 }
 
 )glsl";
