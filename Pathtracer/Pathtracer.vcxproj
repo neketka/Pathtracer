@@ -144,8 +144,10 @@
   <ItemGroup>
     <ClCompile Include="buffer.ixx" />
     <ClCompile Include="engine.ixx" />
+    <ClCompile Include="fullscreenquad.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pass.ixx" />
+    <ClCompile Include="pathtracing.ixx" />
     <ClCompile Include="shader.ixx" />
     <ClCompile Include="texture.ixx" />
     <ClCompile Include="util.cpp" />

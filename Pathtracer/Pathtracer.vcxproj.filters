@@ -23,6 +23,12 @@
     <ClCompile Include="pass.ixx">
       <Filter>graphics</Filter>
     </ClCompile>
+    <ClCompile Include="fullscreenquad.ixx">
+      <Filter>passes</Filter>
+    </ClCompile>
+    <ClCompile Include="pathtracing.ixx">
+      <Filter>passes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
@@ -33,6 +39,9 @@
     </Filter>
     <Filter Include="engine">
       <UniqueIdentifier>{0e9edcc3-9aa4-4dc2-abf8-5750069a7773}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="passes">
+      <UniqueIdentifier>{d37b7287-0f0f-4134-80a5-906270998550}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

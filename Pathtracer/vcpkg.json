@@ -3,6 +3,6 @@
   "name": "pathtracer",
   "version": "1.0.0",
   "dependencies": [
-    "glm", "glew", "sdl2"
+    "glm", "glew", "sdl2", "assimp"
   ]
 }

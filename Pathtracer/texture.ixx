@@ -4,6 +4,8 @@ module;
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <string>
+#include <stdexcept>
 
 export module texture;
 
@@ -114,7 +116,7 @@ private:
 template<>
 class GlTextureFormat<glm::u8> {
 public:
-	const static GLenum sizedFormat = GL_R8UI;
+	const static GLenum sizedFormat = GL_R8;
 	const static GLenum baseFormat = GL_RED;
 	const static GLenum type = GL_UNSIGNED_BYTE;
 };
@@ -122,7 +124,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec2> {
 public:
-	const static GLenum sizedFormat = GL_RG8UI;
+	const static GLenum sizedFormat = GL_RG8;
 	const static GLenum baseFormat = GL_RG;
 	const static GLenum type = GL_UNSIGNED_BYTE;
 };
@@ -130,7 +132,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec3> {
 public:
-	const static GLenum sizedFormat = GL_RGB8UI;
+	const static GLenum sizedFormat = GL_RGB8;
 	const static GLenum baseFormat = GL_RGB;
 	const static GLenum type = GL_UNSIGNED_BYTE;
 };
@@ -138,7 +140,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec4> {
 public:
-	const static GLenum sizedFormat = GL_RGBA8UI;
+	const static GLenum sizedFormat = GL_RGBA8;
 	const static GLenum baseFormat = GL_RGBA;
 	const static GLenum type = GL_UNSIGNED_BYTE;
 };

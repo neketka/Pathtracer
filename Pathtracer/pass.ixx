@@ -22,6 +22,11 @@ public:
 		return *this;
 	}
 
+	GpuRenderState& memoryBarrier() {
+		m_memBarrier = true;
+		return *this;
+	}
+
 	GpuRenderState& viewport(int x, int y, int w, int h) {
 		m_x = x; m_y = y; m_w = w; m_h = h;
 		return *this;
@@ -39,6 +44,10 @@ public:
 	}
 
 	void attach() {
+		if (m_memBarrier) {
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		}
+
 		if (m_depthTest) {
 			glEnable(GL_DEPTH_TEST);
 		} else {
@@ -56,7 +65,7 @@ public:
 		glBindVertexArray(m_vao);
 	}
 private:
-	bool m_depthTest = false, m_rasterizerDiscard = false;
+	bool m_depthTest = false, m_rasterizerDiscard = false, m_memBarrier = false;
 	int m_x = 0, m_y = 0, m_w = 800, m_h = 600;
 	GLuint m_fbo = 0, m_vao = 0;
 };
@@ -87,11 +96,11 @@ private:
 
 export class GpuComputePass {
 public:
-	GpuComputePass(GpuProgram& program, GpuProgramState& data) : m_program(program), m_data(data) {
+	GpuComputePass(GpuProgram *program, GpuProgramState&& data) : m_program(program), m_data(data) {
 	}
 
 	void attach() {
-		glUseProgram(m_program.id());
+		glUseProgram(m_program->id());
 		m_data.attach();
 	}
 
@@ -99,6 +108,6 @@ public:
 		glDispatchCompute(x, y, z);
 	}
 private:
-	GpuProgram& m_program;
-	GpuProgramState& m_data;
+	GpuProgram *m_program;
+	GpuProgramState m_data;
 };

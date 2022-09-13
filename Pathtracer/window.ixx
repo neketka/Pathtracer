@@ -2,11 +2,25 @@ module;
 
 #include <SDL2/SDL.h>
 #include <gl/glew.h>
+#include <Windows.h>
 
 #include <string>
 #include <chrono>
 
 export module window;
+
+void GLAPIENTRY
+MessageCallback(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	const void* userParam)
+{
+	if (severity == GL_DEBUG_SEVERITY_MEDIUM || severity == GL_DEBUG_SEVERITY_HIGH)
+		MessageBoxA(nullptr, message, "OpenGL Error", MB_OK);
+}
 
 export template <class TEngine>
 class Window {
@@ -33,6 +47,9 @@ public:
 
 	void start() {
 		glewInit();
+
+		glEnable(GL_DEBUG_OUTPUT);
+		glDebugMessageCallback(MessageCallback, 0);
 
 		int w, h;
 		SDL_GetWindowSize(m_window, &w, &h);
