@@ -54,8 +54,8 @@ public:
 		int w, h;
 		SDL_GetWindowSize(m_window, &w, &h);
 
-		m_engInst.resize(w, h);
 		m_engInst.start();
+		m_engInst.resize(w, h);
 
 		SDL_Event e;
 
