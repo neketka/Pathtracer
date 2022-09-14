@@ -29,10 +29,7 @@ bool sphereRay(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out
 }
 
 vec3 getRayDir() {
-	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-	ivec2 size = ivec2(gl_NumWorkGroups.xy);
-
-	vec2 factor = vec2(pos) / vec2(size);
+	vec2 factor = vec2(gl_GlobalInvocationID.xy) / vec2(gl_NumWorkGroups.xy);
 
 	vec3 top = mix(frustumTL, frustumTR, factor.x);
 	vec3 bottom = mix(frustumBL, frustumBR, factor.x);
@@ -41,6 +38,8 @@ vec3 getRayDir() {
 }
 
 void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+
 	vec3 rayPos = frustumOrigin;
 	vec3 rayDir = getRayDir();
 
