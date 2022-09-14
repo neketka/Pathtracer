@@ -55,14 +55,48 @@ void main() {
 
 )glsl";
 
+export class PathtracingBuffer {
+public:
+	PathtracingBuffer() {
+	}
+
+	~PathtracingBuffer() {
+		delete m_color;
+		delete m_depth;
+	}
+
+	void resize(int w, int h) {
+		if (m_color) {
+			delete m_color;
+			delete m_depth;
+		}
+
+		m_color = new GpuTexture<glm::vec4>(w, h, false);
+		m_depth = new GpuTexture<float>(w, h, true);
+	}
+
+	GpuTexture<glm::vec4>* getColor() {
+		assert(m_color);
+		return m_color;
+	}
+
+	GpuTexture<float>* getDepth() {
+		assert(m_depth);
+		return m_depth;
+	}
+private:
+	GpuTexture<glm::vec4>* m_color = nullptr;;
+	GpuTexture<float>* m_depth = nullptr;
+};
+
 export class PathtracingPass {
 public:
 	PathtracingPass() {
 		m_program = new GpuProgram(cPathtracing);
 	}
 
-	void render(int w, int h, GpuTexture<glm::vec4> *target) {
-		GpuComputePass pass(m_program, std::forward<GpuProgramState>(GpuProgramState().image(0, target)));
+	void render(int w, int h, PathtracingBuffer *target) {
+		GpuComputePass pass(m_program, std::forward<GpuProgramState>(GpuProgramState().image(0, target->getColor())));
 
 		pass.attach();
 		pass.dispatch(w, h, 1);

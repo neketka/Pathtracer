@@ -16,7 +16,7 @@ export template<class T> class GpuTexture {
 public:
 	GpuTexture(int w, int h, bool depth) : m_w(w), m_h(h) {
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_id);
-		glTextureStorage2D(m_id, 1, GlTextureFormat<T>::sizedFormat, w, h);
+		glTextureStorage2D(m_id, 1, depth ? GlTextureFormat<T>::depthFormat : GlTextureFormat<T>::sizedFormat, w, h);
 	}
 
 	~GpuTexture() {
@@ -116,6 +116,7 @@ private:
 template<>
 class GlTextureFormat<glm::u8> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT24;
 	const static GLenum sizedFormat = GL_R8;
 	const static GLenum baseFormat = GL_RED;
 	const static GLenum type = GL_UNSIGNED_BYTE;
@@ -124,6 +125,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec2> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT24;
 	const static GLenum sizedFormat = GL_RG8;
 	const static GLenum baseFormat = GL_RG;
 	const static GLenum type = GL_UNSIGNED_BYTE;
@@ -132,6 +134,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec3> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT24;
 	const static GLenum sizedFormat = GL_RGB8;
 	const static GLenum baseFormat = GL_RGB;
 	const static GLenum type = GL_UNSIGNED_BYTE;
@@ -140,6 +143,7 @@ public:
 template<>
 class GlTextureFormat<glm::u8vec4> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT24;
 	const static GLenum sizedFormat = GL_RGBA8;
 	const static GLenum baseFormat = GL_RGBA;
 	const static GLenum type = GL_UNSIGNED_BYTE;
@@ -148,6 +152,7 @@ public:
 template<>
 class GlTextureFormat<glm::float32> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT32F;
 	const static GLenum sizedFormat = GL_R32F;
 	const static GLenum baseFormat = GL_RED;
 	const static GLenum type = GL_FLOAT;
@@ -156,6 +161,7 @@ public:
 template<>
 class GlTextureFormat<glm::vec2> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT32F;
 	const static GLenum sizedFormat = GL_RG32F;
 	const static GLenum baseFormat = GL_RG;
 	const static GLenum type = GL_FLOAT;
@@ -164,6 +170,7 @@ public:
 template<>
 class GlTextureFormat<glm::vec3> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT32F;
 	const static GLenum sizedFormat = GL_RGB32F;
 	const static GLenum baseFormat = GL_RGB;
 	const static GLenum type = GL_FLOAT;
@@ -172,6 +179,7 @@ public:
 template<>
 class GlTextureFormat<glm::vec4> {
 public:
+	const static GLenum depthFormat = GL_DEPTH_COMPONENT32F;
 	const static GLenum sizedFormat = GL_RGBA32F;
 	const static GLenum baseFormat = GL_RGBA;
 	const static GLenum type = GL_FLOAT;
