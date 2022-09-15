@@ -150,6 +150,7 @@
     <ClCompile Include="pathtracing.ixx" />
     <ClCompile Include="shader.ixx" />
     <ClCompile Include="texture.ixx" />
+    <ClCompile Include="transforms.ixx" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="window.ixx" />
   </ItemGroup>

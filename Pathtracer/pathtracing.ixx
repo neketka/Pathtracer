@@ -15,15 +15,17 @@ std::string cPathtracing = R"glsl(
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
-layout(location = 1) uniform mat4 mvpMatrix = mat4(1.0);
 
-const vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
-const vec3 frustumTR = vec3(0.577, 0.577, 0.577);
-const vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
-const vec3 frustumBR = vec3(0.577, -0.577, 0.577);
+layout(location = 1) uniform vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
+layout(location = 2) uniform vec3 frustumTR = vec3(0.577, 0.577, 0.577);
+layout(location = 3) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
+layout(location = 4) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
+layout(location = 5) uniform vec3 frustumOrigin = vec3(0.0);
 
 const vec3 spherePos = vec3(0.0, 0.0, 10.0);
 const float sphereRadius = 2.0;
+
+const vec3 lightPos = vec3(2.0, 2.0, 9.0);
 
 // Returns true and sets intersection position and normal, or returns false
 bool sphereRay(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 pos, out vec3 normal) {
@@ -45,6 +47,12 @@ bool boxRay(vec3 rayPos, vec3 rayDir, vec3 boxMin, vec3 boxMax, out vec3 pos, ou
 
 	pos = tmin * rayDir + rayPos;
 
+	vec3 center = (boxMax + boxMin) * 0.5;
+	vec3 sz = (boxMax - boxMin) * 0.5;
+	float bias = 100000.0;
+
+	normal = normalize(floor((pos - center) / abs(sz) * bias));
+
     return tmin < tmax;
 }
 
@@ -60,8 +68,8 @@ vec3 getRayDir() {
 void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
-	vec3 rayPos = mvpMatrix[3].xyz;
-	vec3 rayDir = (vec4(getRayDir(), 0.0) * mvpMatrix).xyz;
+	vec3 rayPos = frustumOrigin;
+	vec3 rayDir = getRayDir();
 
 	vec3 hitPos;
 	vec3 hitNormal;
@@ -69,9 +77,10 @@ void main() {
 	//bool hits = sphereRay(rayPos, rayDir, spherePos, sphereRadius, hitPos, hitNormal);
 	bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
 
-	vec3 pixelColor = mix(vec3(0.0), vec3(1.0), int(hits));
+	float lightFactor = max(0.0, dot(hitNormal, normalize(lightPos - hitPos)));
+	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor;
 
-	imageStore(target, pos, vec4(pixelColor, 1.0));
+	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(hits)), 1.0));
 }
 
 )glsl";
@@ -94,11 +103,8 @@ public:
 
 		m_color = new GpuTexture<glm::vec4>(w, h, false);
 		m_depth = new GpuTexture<float>(w, h, true);
-		m_invAspect = h / static_cast<float>(w);
-	}
-
-	float getInvAspect() {
-		return m_invAspect;
+		m_w = w;
+		m_h = h;
 	}
 
 	GpuTexture<glm::vec4>* getColor() {
@@ -110,8 +116,16 @@ public:
 		assert(m_depth);
 		return m_depth;
 	}
+
+	int w() {
+		return m_w;
+	}
+
+	int h() {
+		return m_h;
+	}
 private:
-	float m_invAspect = 1.0;
+	int m_w, m_h;
 	GpuTexture<glm::vec4>* m_color = nullptr;;
 	GpuTexture<float>* m_depth = nullptr;
 };
@@ -122,23 +136,32 @@ public:
 		m_program = new GpuProgram(cPathtracing);
 	}
 
-	void render(int w, int h, PathtracingBuffer *target) {
-		glm::mat4 mvp = 
-			glm::translate(glm::mat4(1.0), glm::vec3(0.f, 0.f, -10.f)) *
-			glm::rotate(glm::mat4(1.0), 0.2f, glm::vec3(0.0, 1.0, 0.0)) *
-			glm::rotate(glm::mat4(1.0), 0.2f, glm::vec3(1.0, 0.0, 0.0)) *
-			glm::rotate(glm::mat4(1.0), 0.f, glm::vec3(0.0, 0.0, 1.0)) *
-			glm::scale(glm::mat4(1.0), glm::vec3(1.f, target->getInvAspect(), 1.f));
+	void render(glm::mat4 viewMatrix, PathtracingBuffer* target) {
+		float invAspect = target->h() / static_cast<float>(target->w());
+
+		glm::mat4 mvp =
+			glm::scale(glm::mat4(1.0), glm::vec3(1.f, invAspect, 1.f)) * viewMatrix;
+
+		glm::vec3 frustumTL = glm::vec4(-0.577, 0.577, 0.577, 0.f) * mvp;
+		glm::vec3 frustumTR = glm::vec4(0.577, 0.577, 0.577, 0.f) * mvp;
+		glm::vec3 frustumBL = glm::vec4(-0.577, -0.577, 0.577, 0.f) * mvp;
+		glm::vec3 frustumBR = glm::vec4(0.577, -0.577, 0.577, 0.f) * mvp;
 
 		GpuComputePass pass(
 			m_program,
 			std::forward<GpuProgramState>(
-				GpuProgramState().image(0, target->getColor()).uniform(1, mvp)
+				GpuProgramState()
+					.image(0, target->getColor())
+					.uniform(1, frustumTL)
+					.uniform(2, frustumTR)
+					.uniform(3, frustumBL)
+					.uniform(4, frustumBR)
+					.uniform(5, glm::vec3(mvp[3]))
 			)
 		);
 
 		pass.attach();
-		pass.dispatch(w, h, 1);
+		pass.dispatch(target->w(), target->h(), 1);
 	}
 private:
 	GpuProgram* m_program;

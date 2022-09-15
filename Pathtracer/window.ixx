@@ -54,7 +54,7 @@ public:
 		int w, h;
 		SDL_GetWindowSize(m_window, &w, &h);
 
-		m_engInst.start();
+		m_engInst.start(*this);
 		m_engInst.resize(w, h);
 
 		SDL_Event e;
@@ -77,6 +77,16 @@ public:
 						m_engInst.resize(w, h);
 						break;
 					}		
+				} else if (e.type == SDL_MOUSEBUTTONDOWN) {
+					m_engInst.mouseButton(e.button.button == SDL_BUTTON_LEFT, e.button.button == SDL_BUTTON_RIGHT, true);
+				} else if (e.type == SDL_MOUSEBUTTONUP) {
+					m_engInst.mouseButton(e.button.button == SDL_BUTTON_LEFT, e.button.button == SDL_BUTTON_RIGHT, false);
+				} else if (e.type == SDL_MOUSEMOTION) {
+					m_engInst.mouseMove(e.motion.x, e.motion.y, e.motion.xrel, e.motion.yrel);
+				} else if (e.type == SDL_KEYDOWN) {
+					m_engInst.key(e.key.keysym.scancode, true);
+				} else if (e.type == SDL_KEYUP) {
+					m_engInst.key(e.key.keysym.scancode, false);
 				}
 			}
 
@@ -110,6 +120,10 @@ public:
 
 	void stop() {
 		m_running = false;
+	}
+
+	void captureMouse(bool state) {
+		SDL_SetRelativeMouseMode(state ? SDL_TRUE : SDL_FALSE);
 	}
 
 private:

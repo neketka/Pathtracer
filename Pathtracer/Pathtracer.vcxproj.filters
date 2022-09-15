@@ -29,6 +29,9 @@
     <ClCompile Include="pathtracing.ixx">
       <Filter>passes</Filter>
     </ClCompile>
+    <ClCompile Include="transforms.ixx">
+      <Filter>engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
