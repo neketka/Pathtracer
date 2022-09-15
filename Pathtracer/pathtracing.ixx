@@ -39,9 +39,24 @@ bool planeRay(vec3 rayPos, vec3 rayDir, vec3 planePos, vec3 planeNormal, out vec
     return false; 
 }
 
+
+
 // Returns true and sets intersection position and normal, or returns false
 bool sphereRay(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 pos, out vec3 normal) {
-	return false;
+	float R2 = sphereRadius * sphereRadius;
+    vec3 L = spherePos - rayPos;
+    float tca = dot(L, rayDir);
+    // if(tca < 0) return false;
+
+    float D2 = dot(L, L) - tca * tca;
+    if(D2 > R2) return false;
+    float thc = sqrt(R2 - D2);
+    float t0 = tca - thc;
+    float t1 = tca + thc;
+	
+    pos = min(t0, t1) * rayDir + rayPos; // <---
+	normal = normalize(pos - spherePos);
+    return true;
 }
 
 // https://tavianator.com/2022/ray_box_boundary.html
@@ -81,14 +96,14 @@ void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
 	vec3 rayPos = frustumOrigin;
-	vec3 rayDir = getRayDir();
+	vec3 rayDir = normalize(getRayDir());
 
 	vec3 hitPos;
 	vec3 hitNormal;
 
 
-	//bool hits = sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
-	bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
+	bool hits = sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
+	//bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
 	//bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
 
 	float lightFactor = max(0.0, dot(hitNormal, normalize(lightPos - hitPos)));
