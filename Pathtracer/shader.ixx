@@ -115,7 +115,7 @@ public:
 	template<class T>
 	GpuProgramState& image(int location, GpuTexture<T> *texture) {
 		m_imageUnits.push_back(texture->id());
-		m_ints.push_back({ location, m_imgUnits++ });
+		//m_ints.push_back({ location, m_imgUnits++ });
 
 		return *this;
 	}
