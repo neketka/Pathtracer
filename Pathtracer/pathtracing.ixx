@@ -25,8 +25,18 @@ layout(location = 5) uniform vec3 frustumOrigin = vec3(0.0);
 const vec3 lightPos = vec3(2.0, 2.0, 9.0);
 
 // Returns true and sets intersection position and normal, or returns false
-bool planeRay(vec3 rayPos, vec3 rayDir, vec3 planePos, float planeNormal, out vec3 pos, out vec3 normal) {
-	return false;
+bool planeRay(vec3 rayPos, vec3 rayDir, vec3 planePos, vec3 planeNormal, out vec3 pos, out vec3 normal) {
+	float denom = dot(planeNormal, rayDir); 
+    if (denom > 1e-6) { 
+        vec3 p0l0 = planePos - rayPos; 
+        float t = dot(p0l0, planeNormal) / denom; 
+		pos = rayPos + rayDir * t;
+		normal = -sign(denom) * planeNormal;
+        return (t >= 0); 
+    } 
+	
+ 
+    return false; 
 }
 
 // Returns true and sets intersection position and normal, or returns false
@@ -78,8 +88,8 @@ void main() {
 
 
 	//bool hits = sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
-	//bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
-	bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
+	bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
+	//bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
 
 	float lightFactor = max(0.0, dot(hitNormal, normalize(lightPos - hitPos)));
 	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor;
