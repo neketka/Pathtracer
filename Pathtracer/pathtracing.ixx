@@ -22,10 +22,12 @@ layout(location = 3) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
 layout(location = 4) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
 layout(location = 5) uniform vec3 frustumOrigin = vec3(0.0);
 
-const vec3 spherePos = vec3(0.0, 0.0, 10.0);
-const float sphereRadius = 2.0;
-
 const vec3 lightPos = vec3(2.0, 2.0, 9.0);
+
+// Returns true and sets intersection position and normal, or returns false
+bool planeRay(vec3 rayPos, vec3 rayDir, vec3 planePos, float planeNormal, out vec3 pos, out vec3 normal) {
+	return false;
+}
 
 // Returns true and sets intersection position and normal, or returns false
 bool sphereRay(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 pos, out vec3 normal) {
@@ -74,7 +76,9 @@ void main() {
 	vec3 hitPos;
 	vec3 hitNormal;
 
-	//bool hits = sphereRay(rayPos, rayDir, spherePos, sphereRadius, hitPos, hitNormal);
+
+	//bool hits = sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
+	//bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
 	bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
 
 	float lightFactor = max(0.0, dot(hitNormal, normalize(lightPos - hitPos)));
