@@ -16,11 +16,11 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
 
-layout(location = 1) uniform vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
-layout(location = 2) uniform vec3 frustumTR = vec3(0.577, 0.577, 0.577);
-layout(location = 3) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
-layout(location = 4) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
-layout(location = 5) uniform vec3 frustumOrigin = vec3(0.0);
+layout(location = 0) uniform vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
+layout(location = 1) uniform vec3 frustumTR = vec3(0.577, 0.577, 0.577);
+layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
+layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
+layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
 
 const vec3 lightPos = vec3(2.0, 2.0, 9.0);
 
@@ -166,11 +166,11 @@ public:
 			std::forward<GpuProgramState>(
 				GpuProgramState()
 					.image(0, target->getColor())
-					.uniform(1, frustumTL)
-					.uniform(2, frustumTR)
-					.uniform(3, frustumBL)
-					.uniform(4, frustumBR)
-					.uniform(5, glm::vec3(mvp[3]))
+					.uniform(0, frustumTL)
+					.uniform(1, frustumTR)
+					.uniform(2, frustumBL)
+					.uniform(3, frustumBR)
+					.uniform(4, glm::vec3(mvp[3]))
 			)
 		);
 
