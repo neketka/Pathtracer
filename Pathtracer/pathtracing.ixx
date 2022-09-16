@@ -98,18 +98,28 @@ void main() {
 	vec3 rayPos = frustumOrigin;
 	vec3 rayDir = normalize(getRayDir());
 
-	vec3 hitPos;
-	vec3 hitNormal;
+	vec3 closestPos = vec3(0.0, 0.0, 0.0);
+	vec3 closestNormal = vec3(0.0, 0.0, 0.0);
+	float closestT = 100000000.0;
+	bool anyHit = false;
 
+	vec3 hitPos = vec3(0.0, 0.0, 0.0);
+	vec3 hitNormal = vec3(0.0, 0.0, 0.0);
+	float hitT = 100000000.0;
 
-	bool hits = sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
-	//bool hits = planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
-	//bool hits = boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
+	// Algorithm:
+	// For each intersection test
+	// If it returns true, set anyHit to true
+	//     If the hitT is less than closestT, set all the closestXYZ variables to the one hitXYZ
 
-	float lightFactor = max(0.0, dot(hitNormal, normalize(lightPos - hitPos)));
+	//sphereRay(rayPos, rayDir, vec3(0.0, 0.0, 10.0), 2.0, hitPos, hitNormal);
+	//planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal);
+	//boxRay(rayPos, rayDir, vec3(-1.0, -1.0, 9.0), vec3(1.0, 1.0, 11.0), hitPos, hitNormal);
+
+	float lightFactor = max(0.0, dot(closestNormal, normalize(lightPos - closestPos)));
 	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor;
 
-	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(hits)), 1.0));
+	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0));
 }
 
 )glsl";
