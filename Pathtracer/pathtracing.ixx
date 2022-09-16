@@ -128,9 +128,7 @@ void findClosest(
 	closest.t = mix(closest.t, info.t, mixVal);
 }
 
-void main() {
-	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-
+bool traceScene(Ray r, out IntersectionInfo closest) {
 	Sphere s;
 	s.center = vec3(-3.0, 3.0, 10.0);
 	s.radius = 1.0;
@@ -140,14 +138,9 @@ void main() {
 	b.max = b.min + vec3(1.0);
 
 	Plane p;
-	p.origin = vec3(0.0);
+	p.origin = vec3(0.0, -1.0, 0.0);
 	p.normal = vec3(0.0, 1.0, 0.0);
 
-	Ray r;
-	r.pos = frustumOrigin;
-	r.dir = normalize(getRayDir());
-
-	IntersectionInfo closest;
 	closest.pos = vec3(0.0);
 	closest.normal = vec3(0.0);
 	closest.t = 10000000.0;
@@ -163,23 +156,28 @@ void main() {
 	findClosest(boxRay(r, b, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s, current), current, anyHit, closest);
 
-	float lightFactor = max(0.0, dot(closest.normal, normalize(lightPos - closest.pos)));
+	return anyHit;
+}
 
-	bool anyShadowHit = false;
+void main() {
+	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+
+	IntersectionInfo rayInfo;
+
+	Ray r;
+	r.pos = frustumOrigin;
+	r.dir = normalize(getRayDir());
+
+	bool anyHit = traceScene(r, rayInfo);
+	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos)));
 
 	Ray sr;
-	sr.pos = closest.pos + closest.normal * 0.001;
+	sr.pos = rayInfo.pos + rayInfo.normal * 0.001;
 	sr.dir = normalize(lightPos - sr.pos);
 
-	closest.pos = vec3(0.0);
-	closest.normal = vec3(0.0);
-	closest.t = 10000000.0;
+	traceScene(sr, rayInfo);
 
-	findClosest(planeRay(sr, p, current), current, anyShadowHit, closest);
-	findClosest(boxRay(sr, b, current), current, anyShadowHit, closest);
-	findClosest(sphereRay(sr, s, current), current, anyShadowHit, closest);
-
-	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * float(!anyShadowHit);
+	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * float(length(lightPos - sr.pos) <= rayInfo.t);
 
 	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0));
 }
