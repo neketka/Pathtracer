@@ -12,6 +12,32 @@ import shader;
 
 std::string cPathtracing = R"glsl(
 
+struct Ray {
+	vec3 pos;
+	vec3 dir;
+};
+
+struct IntersectionInfo {
+	vec3 pos;
+	vec3 normal;
+	float t;
+};
+
+struct Sphere {
+	vec3 center;
+	float radius;
+};
+
+struct Plane {
+	vec3 origin;
+	vec3 normal;
+};
+
+struct Box {
+	vec3 min;
+	vec3 max;
+};
+
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
@@ -22,62 +48,62 @@ layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
 layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
 layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
 
-const vec3 lightPos = vec3(2.0, 2.0, 9.0);
+const vec3 lightPos = vec3(2.0, 5.0, 10.0);
 
 // Returns true and sets intersection position and normal, or returns false
-bool planeRay(vec3 rayPos, vec3 rayDir, vec3 planePos, vec3 planeNormal, out vec3 pos, out vec3 normal, out float t) {
-	float denom = dot(planeNormal, rayDir); 
+bool planeRay(Ray ray, Plane plane, out IntersectionInfo info) {
+	float denom = dot(plane.normal, ray.dir); 
 
-    if (abs(denom) > 1e-6) { 
-        vec3 p0l0 = planePos - rayPos; 
-        t = dot(p0l0, planeNormal) / denom; 
-		pos = rayPos + rayDir * t;
-		normal = -sign(denom) * planeNormal;
-        return (t >= 0); 
-    } 
+    vec3 p0l0 = plane.origin - ray.pos; 
+
+    info.t = dot(p0l0, plane.normal) / denom; 
+	info.pos = ray.pos + ray.dir * info.t;
+	info.normal = -sign(denom) * plane.normal;
 	
-    return false; 
+    return info.t >= 0; 
 }
 
 // Returns true and sets intersection position and normal, or returns false
-bool sphereRay(vec3 rayPos, vec3 rayDir, vec3 spherePos, float sphereRadius, out vec3 pos, out vec3 normal, out float t) {
-	float R2 = sphereRadius * sphereRadius;
-    vec3 L = spherePos - rayPos;
-    float tca = dot(L, rayDir);
+bool sphereRay(Ray ray, Sphere sphere, out IntersectionInfo info) {
+	float R2 = sphere.radius * sphere.radius;
+    vec3 L = sphere.center - ray.pos;
+    float tca = dot(L, ray.dir);
 
     float D2 = dot(L, L) - tca * tca;
     if(D2 > R2) return false;
+
     float thc = sqrt(R2 - D2);
     float t0 = tca - thc;
     float t1 = tca + thc;
 	
-	t = t0;
-    pos = t0 * rayDir + rayPos;
-	normal = normalize(pos - spherePos);
-    return true;
+	info.t = min(t0, t1);
+    info.pos = info.t * ray.dir + ray.pos;
+	info.normal = normalize(info.pos - sphere.center);
+
+    return D2 <= R2 && info.t >= 0;
 }
 
 // https://tavianator.com/2022/ray_box_boundary.html
-bool boxRay(vec3 rayPos, vec3 rayDir, vec3 boxMin, vec3 boxMax, out vec3 pos, out vec3 normal, out float t) {
+bool boxRay(Ray ray, Box box, out IntersectionInfo info) {
 	float tmin = 0.0, tmax = 1.0 / 0.0;
-	vec3 dirInv = vec3(1.0) / rayDir;
+	vec3 dirInv = vec3(1.0) / ray.dir;
 
     for (int i = 0; i < 3; ++i) {
-        float t1 = (boxMin[i] - rayPos[i]) * dirInv[i];
-        float t2 = (boxMax[i] - rayPos[i]) * dirInv[i];
+        float t1 = (box.min[i] - ray.pos[i]) * dirInv[i];
+        float t2 = (box.max[i] - ray.pos[i]) * dirInv[i];
 
         tmin = max(tmin, min(t1, t2));
         tmax = min(tmax, max(t1, t2));
     }
 
-	t = tmin;
-	pos = tmin * rayDir + rayPos;
+	info.t = tmin;
+	info.pos = tmin * ray.dir + ray.pos;
 
-	vec3 center = (boxMax + boxMin) * 0.5;
-	vec3 sz = (boxMax - boxMin) * 0.5;
+	vec3 center = (box.max + box.min) * 0.5;
+	vec3 sz = (box.max - box.min) * 0.5;
 	float bias = 100000.0;
 
-	normal = normalize(floor((pos - center) / abs(sz) * bias));
+	info.normal = normalize(floor((info.pos - center) / abs(sz) * bias));
 
     return tmin < tmax;
 }
@@ -92,49 +118,68 @@ vec3 getRayDir() {
 }
 
 void findClosest(
-	bool hit, vec3 hitPos, vec3 hitNormal, float hitT, 
-	inout vec3 closestPos, inout vec3 closestNormal, inout float closestT, inout bool anyHit
+	bool hit, IntersectionInfo info, inout bool anyHit, inout IntersectionInfo closest
 ) {
 	anyHit = anyHit || hit;
 
-	int mixVal = int(hit && hitT < closestT);
-	closestPos = mix(closestPos, hitPos, mixVal);
-	closestNormal = mix(closestNormal, hitNormal, mixVal);
-	closestT = mix(closestT, hitT, mixVal);
+	int mixVal = int(hit && info.t < closest.t);
+	closest.pos = mix(closest.pos, info.pos, mixVal);
+	closest.normal = mix(closest.normal, info.normal, mixVal);
+	closest.t = mix(closest.t, info.t, mixVal);
 }
 
 void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
-	vec3 rayPos = frustumOrigin;
-	vec3 rayDir = normalize(getRayDir());
+	Sphere s;
+	s.center = vec3(-3.0, 3.0, 10.0);
+	s.radius = 1.0;
 
-	vec3 closestPos = vec3(0.0, 0.0, 0.0);
-	vec3 closestNormal = vec3(0.0, 0.0, 0.0);
-	float closestT = 100000000.0;
+	Box b;
+	b.min = vec3(1.0, 1.0, 9.0);
+	b.max = b.min + vec3(1.0);
+
+	Plane p;
+	p.origin = vec3(0.0);
+	p.normal = vec3(0.0, 1.0, 0.0);
+
+	Ray r;
+	r.pos = frustumOrigin;
+	r.dir = normalize(getRayDir());
+
+	IntersectionInfo closest;
+	closest.pos = vec3(0.0);
+	closest.normal = vec3(0.0);
+	closest.t = 10000000.0;
+
+	IntersectionInfo current;
+	current.pos = vec3(0.0);
+	current.normal = vec3(0.0);
+	current.t = 10000000.0;
+
 	bool anyHit = false;
 
-	vec3 hitPos = vec3(0.0, 0.0, 0.0);
-	vec3 hitNormal = vec3(0.0, 0.0, 0.0);
-	float hitT = 100000000.0;
+	findClosest(planeRay(r, p, current), current, anyHit, closest);
+	findClosest(boxRay(r, b, current), current, anyHit, closest);
+	findClosest(sphereRay(r, s, current), current, anyHit, closest);
 
-	findClosest(
-		planeRay(rayPos, rayDir, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0), hitPos, hitNormal, hitT),
-		hitPos, hitNormal, hitT, closestPos, closestNormal, closestT, anyHit
-	);
+	float lightFactor = max(0.0, dot(closest.normal, normalize(lightPos - closest.pos)));
 
-	findClosest(
-		boxRay(rayPos, rayDir, vec3(1.0, 1.0, 9.0), vec3(2.0, 2.0, 10.0), hitPos, hitNormal, hitT),
-		hitPos, hitNormal, hitT, closestPos, closestNormal, closestT, anyHit
-	);
+	bool anyShadowHit = false;
 
-	findClosest(
-		sphereRay(rayPos, rayDir, vec3(-3.0, 0.0, 10.0), 1.0, hitPos, hitNormal, hitT),
-		hitPos, hitNormal, hitT, closestPos, closestNormal, closestT, anyHit
-	);
+	Ray sr;
+	sr.pos = closest.pos + closest.normal * 0.001;
+	sr.dir = normalize(lightPos - sr.pos);
 
-	float lightFactor = max(0.0, dot(closestNormal, normalize(lightPos - closestPos)));
-	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor;
+	closest.pos = vec3(0.0);
+	closest.normal = vec3(0.0);
+	closest.t = 10000000.0;
+
+	findClosest(planeRay(sr, p, current), current, anyShadowHit, closest);
+	findClosest(boxRay(sr, b, current), current, anyShadowHit, closest);
+	findClosest(sphereRay(sr, s, current), current, anyShadowHit, closest);
+
+	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * float(!anyShadowHit);
 
 	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0));
 }
