@@ -48,7 +48,7 @@ layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
 layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
 layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
 
-const vec3 lightPos = vec3(2.0, 5.0, 10.0);
+const vec3 lightPos = vec3(2.0, 10.0, 14.0);
 
 // Returns true and sets intersection position and normal, or returns false
 bool planeRay(Ray ray, Plane plane, out IntersectionInfo info) {
@@ -159,6 +159,14 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	return anyHit;
 }
 
+vec3 sampleSphere(vec3 center, float radius, vec2 rng) {
+    float x = sin(rng.x) * cos(rng.y);
+    float y = sin(rng.x) * sin(rng.y);
+    float z = cos(rng.x);
+
+	return center + vec3(x, y, z) * radius;
+}
+
 void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
@@ -173,11 +181,18 @@ void main() {
 
 	Ray sr;
 	sr.pos = rayInfo.pos + rayInfo.normal * 0.001;
-	sr.dir = normalize(lightPos - sr.pos);
 
-	traceScene(sr, rayInfo);
+	float shadow = 0.0;
+	vec3 samplePt;
 
-	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * float(length(lightPos - sr.pos) <= rayInfo.t);
+	for (int i = 0; i < 512; ++i) {
+		samplePt = sampleSphere(lightPos, 2.0, vec2(-i, i));
+		sr.dir = normalize(samplePt - sr.pos);
+		traceScene(sr, rayInfo);
+		shadow += float(length(samplePt - sr.pos) <= rayInfo.t);
+	}
+
+	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * shadow / 512.0;
 
 	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0));
 }
