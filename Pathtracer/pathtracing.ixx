@@ -38,18 +38,6 @@ struct Box {
 	vec3 max;
 };
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-
-layout(rgba32f, binding = 0) uniform image2D target;
-
-layout(location = 0) uniform vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
-layout(location = 1) uniform vec3 frustumTR = vec3(0.577, 0.577, 0.577);
-layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
-layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
-layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
-
-const vec3 lightPos = vec3(2.0, 5.0, 10.0);
-
 // Returns true and sets intersection position and normal, or returns false
 bool planeRay(Ray ray, Plane plane, out IntersectionInfo info) {
 	float denom = dot(plane.normal, ray.dir); 
@@ -108,15 +96,6 @@ bool boxRay(Ray ray, Box box, out IntersectionInfo info) {
     return tmin < tmax;
 }
 
-vec3 getRayDir() {
-	vec2 factor = vec2(gl_GlobalInvocationID.xy) / vec2(gl_NumWorkGroups.xy);
-
-	vec3 top = mix(frustumTL, frustumTR, factor.x);
-	vec3 bottom = mix(frustumBL, frustumBR, factor.x);
-
-	return mix(bottom, top, factor.y);
-}
-
 void findClosest(
 	bool hit, IntersectionInfo info, inout bool anyHit, inout IntersectionInfo closest
 ) {
@@ -159,6 +138,36 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	return anyHit;
 }
 
+vec3 sampleSphere(vec3 center, float radius, vec2 rng) {
+	return center + radius * vec3(
+		sin(rng.x)*cos(rng.y), sin(rng.x)*sin(rng.y), cos(rng.x)
+	);
+}
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D target;
+
+layout(location = 0) uniform vec3 frustumTL = vec3(-0.577, 0.577, 0.577);
+layout(location = 1) uniform vec3 frustumTR = vec3(0.577, 0.577, 0.577);
+layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
+layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
+layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
+layout(location = 5) uniform vec2 rng;
+layout(location = 6) uniform int samples;
+
+const vec3 lightPos = vec3(2.0, 8.0, 10.0);
+const float lightRadius = 1.0;
+
+vec3 getRayDir() {
+	vec2 factor = vec2(gl_GlobalInvocationID.xy) / vec2(gl_NumWorkGroups.xy);
+
+	vec3 top = mix(frustumTL, frustumTR, factor.x);
+	vec3 bottom = mix(frustumBL, frustumBR, factor.x);
+
+	return mix(bottom, top, factor.y);
+}
+
 void main() {
 	ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
@@ -173,13 +182,22 @@ void main() {
 
 	Ray sr;
 	sr.pos = rayInfo.pos + rayInfo.normal * 0.001;
-	sr.dir = normalize(lightPos - sr.pos);
 
-	traceScene(sr, rayInfo);
+	float shadow = 0.0;
+	for (int i = 0; i < 16; ++i) {
+		vec3 sampl = sampleSphere(lightPos, lightRadius, rng + vec2(i));
+		
+		sr.dir = normalize(sampl - sr.pos);
+		traceScene(sr, rayInfo);
+		shadow += float(length(sampl - sr.pos) <= rayInfo.t);
+	}
 
-	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * float(length(lightPos - sr.pos) <= rayInfo.t);
+	shadow /= 16.0;
 
-	imageStore(target, pos, vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0));
+	vec3 surfaceColor = vec3(0.1) + vec3(1.0) * lightFactor * shadow;
+
+	vec4 color = imageLoad(target, pos);
+	imageStore(target, pos, (color * samples + vec4(mix(vec3(0.0), surfaceColor, int(anyHit)), 1.0)) / (samples + 1));
 }
 
 )glsl";
@@ -246,6 +264,11 @@ public:
 		glm::vec3 frustumBL = glm::vec4(-0.577, -0.577, 0.577, 0.f) * mvp;
 		glm::vec3 frustumBR = glm::vec4(0.577, -0.577, 0.577, 0.f) * mvp;
 
+		if (mvp != m_mvp) {
+			m_samples = 0;
+			m_mvp = mvp;
+		}
+
 		GpuComputePass pass(
 			m_program,
 			std::forward<GpuProgramState>(
@@ -256,6 +279,8 @@ public:
 					.uniform(2, frustumBL)
 					.uniform(3, frustumBR)
 					.uniform(4, glm::vec3(mvp[3]))
+					.uniform(5, glm::vec2(std::rand(), std::rand()))
+					.uniform(6, m_samples++)
 			)
 		);
 
@@ -263,5 +288,7 @@ public:
 		pass.dispatch(target->w(), target->h(), 1);
 	}
 private:
+	glm::mat4 m_mvp;
+	int m_samples = 0;
 	GpuProgram* m_program;
 };
