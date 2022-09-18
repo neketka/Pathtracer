@@ -226,7 +226,8 @@ const vec3 lightPos = vec3(0.0, 4.0, 0.0);
 const float lightRadius = 1.0;
 
 vec3 getRayDir() {
-	vec2 factor = vec2(gl_GlobalInvocationID.xy) / vec2(gl_NumWorkGroups.xy);
+	vec2 jitter = vec2(sin(time), cos(time)) * 2.0;
+	vec2 factor = (vec2(gl_GlobalInvocationID.xy) + jitter) / vec2(gl_NumWorkGroups.xy);
 
 	vec3 top = mix(frustumTL, frustumTR, factor.x);
 	vec3 bottom = mix(frustumBL, frustumBR, factor.x);
