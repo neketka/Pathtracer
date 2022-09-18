@@ -21,6 +21,8 @@ struct Ray {
 struct IntersectionInfo {
 	vec3 pos;
 	vec3 normal;
+	vec3 color;
+	float roughness;
 	float t;
 };
 
@@ -68,6 +70,8 @@ bool sphereRay(Ray ray, Sphere sphere, inout IntersectionInfo info) {
 	info.t = min(t0, t1);
     info.pos = info.t * ray.dir + ray.pos;
 	info.normal = normalize(info.pos - sphere.center);
+	info.color = vec3(1.0, 1.0, 1.0);
+	info.roughness = 0.0;
 
     return D2 <= R2 && info.t >= 0;
 }
@@ -104,9 +108,11 @@ void findClosest(
 	float mixVal = 1.0;
 
 	if (hit && (info.t < closest.t)) {
-		closest.pos = mix(closest.pos, info.pos, mixVal);
-		closest.normal = mix(closest.normal, info.normal, mixVal);
-		closest.t = mix(closest.t, info.t, mixVal);
+		closest.pos = info.pos;
+		closest.normal = info.normal;
+		closest.t = info.t;
+		closest.color = info.color;
+		closest.roughness = info.roughness;
 	}
 }
 
@@ -142,11 +148,15 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	closest.pos = vec3(0.0);
 	closest.normal = vec3(0.0);
 	closest.t = 10000000.0;
+	closest.color = vec3(1.0);
+	closest.roughness = 1.0;
 
 	IntersectionInfo current;
 	current.pos = vec3(0.0);
 	current.normal = vec3(0.0);
 	current.t = 10000000.0;
+	current.color = vec3(1.0);
+	current.roughness = 1.0;
 
 	bool anyHit = false;
 
@@ -209,6 +219,9 @@ vec3 getRayDir() {
 vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, rayInfo);
 	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos))) * 1.2;
+	vec3 color = rayInfo.color;
+
+	IntersectionInfo srInfo;
 
 	Ray sr;
 	sr.pos = rayInfo.pos + rayInfo.normal * 0.001;
@@ -218,13 +231,13 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 		vec3 sampl = sampleSphere(lightPos, lightRadius, vec2(i + time) + r.dir.xy);
 		
 		sr.dir = normalize(sampl - sr.pos);
-		traceScene(sr, rayInfo);
-		shadow += float(length(sampl - sr.pos) <= rayInfo.t);
+		traceScene(sr, srInfo);
+		shadow += float(length(sampl - sr.pos) <= srInfo.t);
 	}
 
 	shadow /= 2.0;
 
-	return mix(vec3(0.0), vec3(1.0), float(anyHit)) * lightFactor * shadow;
+	return mix(vec3(0.0), color, float(anyHit)) * lightFactor * shadow;
 }
 
 void main() {
@@ -235,6 +248,7 @@ void main() {
 	r.dir = normalize(getRayDir());
 	
 	IntersectionInfo rayInfo;
+	
 	vec3 directLight = getDirectRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
@@ -243,14 +257,16 @@ void main() {
 
 	for (int i = 0; i < 5; ++i) {
 		vec3 curNormal = rayInfo.normal;
+		vec3 curColor = rayInfo.color;
+		float curRoughness = rayInfo.roughness;
 		
-		r.pos = rayInfo.pos;
-		r.dir = hemisphereVector(curNormal, vec2(time) + r.dir.xy);
+		r.pos = rayInfo.pos + rayInfo.normal * 0.001;
+		r.dir = mix(reflect(r.dir, curNormal), hemisphereVector(curNormal, vec2(time) + r.dir.xy), curRoughness);
 
 		vec3 rad = getDirectRadiance(r, rayInfo);
 
 		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos))));
-		indirectLight += rad * lightFactor;
+		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 
 		p *= pdf;
 	}
