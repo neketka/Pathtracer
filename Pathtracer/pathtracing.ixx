@@ -131,6 +131,12 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	s2.color = vec3(1.0, 0.0, 1.0);
 	s2.roughness = 1.0;
 
+	Sphere s3;
+	s3.center = vec3(-3.0, -3.0, 1.0);
+	s3.radius = 3.0;
+	s3.color = vec3(1.0);
+	s3.roughness = 0.0;
+
 	Plane left;
 	left.origin = vec3(-6.0, -6.0, -6.0);
 	left.normal = vec3(1.0, 0.0, 0.0);
@@ -178,6 +184,7 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	findClosest(planeRay(r, back, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s2, current), current, anyHit, closest);
+	findClosest(sphereRay(r, s3, current), current, anyHit, closest);
 
 	return anyHit;
 }
