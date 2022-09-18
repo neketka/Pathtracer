@@ -29,6 +29,8 @@ struct IntersectionInfo {
 struct Sphere {
 	vec3 center;
 	float radius;
+	vec3 color;
+	float roughness;
 };
 
 struct Plane {
@@ -70,8 +72,8 @@ bool sphereRay(Ray ray, Sphere sphere, inout IntersectionInfo info) {
 	info.t = min(t0, t1);
     info.pos = info.t * ray.dir + ray.pos;
 	info.normal = normalize(info.pos - sphere.center);
-	info.color = vec3(1.0, 1.0, 1.0);
-	info.roughness = 0.0;
+	info.color = sphere.color;
+	info.roughness = sphere.roughness;
 
     return D2 <= R2 && info.t >= 0;
 }
@@ -120,6 +122,14 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	Sphere s;
 	s.center = vec3(-3.0, 3.0, 1.0);
 	s.radius = 1.0;
+	s.color = vec3(1.0);
+	s.roughness = 0.0;
+
+	Sphere s2;
+	s2.center = vec3(3.0, 3.0, 1.0);
+	s2.radius = 1.0;
+	s2.color = vec3(1.0, 0.0, 1.0);
+	s2.roughness = 1.0;
 
 	Plane left;
 	left.origin = vec3(-6.0, -6.0, -6.0);
@@ -167,6 +177,7 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	findClosest(planeRay(r, front, current), current, anyHit, closest);
 	findClosest(planeRay(r, back, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s, current), current, anyHit, closest);
+	findClosest(sphereRay(r, s2, current), current, anyHit, closest);
 
 	return anyHit;
 }
