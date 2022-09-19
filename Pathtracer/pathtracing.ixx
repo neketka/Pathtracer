@@ -43,6 +43,14 @@ struct Box {
 	vec3 max;
 };
 
+struct Triangle {
+	vec3 pos0;
+	vec3 pos1;
+	vec3 pos2;
+	vec3 color;
+	float roughness;
+}
+
 // Returns true and sets intersection position and normal, or returns false
 bool planeRay(Ray ray, Plane plane, inout IntersectionInfo info) {
 	float denom = dot(plane.normal, ray.dir); 
@@ -103,6 +111,61 @@ bool boxRay(Ray ray, Box box, inout IntersectionInfo info) {
     return tmin < tmax;
 }
 
+bool triangleRay(Ray ray, Triangle tri, inout IntersectionInfo info){
+	// compute plane's normal
+    vec3 v0v1 = tri.pos1 - tri.pos0; 
+    vec3 v0v2 = tri.pos2 - tri.pos0; 
+    // no need to normalize
+    vec3 N = cross(v0v1, v0v2);  //N 
+    float area2 = length(N); 
+ 
+    // Step 1: finding P
+ 
+    // check if ray and plane are parallel.
+    float NdotRayDirection = dot(N,dir); 
+    if (abs(NdotRayDirection) < 0.000001)  //almost 0 
+        return false;  //they are parallel so they don't intersect ! 
+ 
+    // compute d parameter using equation 2
+    float d = -dot(N,tri.pos0); 
+ 
+    // compute t (equation 3)
+    info.t = -(dot(N,ray.pos) + d) / NdotRayDirection; 
+ 
+    // check if the triangle is in behind the ray
+    if (t < 0) return false;  //the triangle is behind 
+ 
+    // compute the intersection point using equation 1
+    info.pos = ray.pos + t * ray.dir; 
+ 
+    // Step 2: inside-outside test
+    vec3 C;  //vector perpendicular to triangle's plane 
+ 
+    // edge 0
+    vec3 edge0 = tri.pos1 - tri.pos0; 
+    vec3 vp0 = info.pos - tri.pos0; 
+    C = cross(edge0, vp0); 
+    if (dot(N, C) < 0) return false;  //P is on the right side 
+ 
+    // edge 1
+    vec3 edge1 = tri.pos2 - tri.pos1; 
+    vec3 vp1 = info.pos - tri.pos1; 
+    C = cross(edge1, vp1); 
+    if (dot(N,C) < 0)  return false;  //P is on the right side 
+ 
+    // edge 2
+    vec3 edge2 = tri.pos0 - tri.pos2; 
+    vec3 vp2 = info.pos - tri.pos2; 
+    C = cross(edge2, vp2); 
+    if (dot(N,C) < 0) return false;  //P is on the right side; 
+	
+	info.normal = C;
+	info.color = tri.color;
+	info.roughness = tri.roughness;
+
+    return true;  //this ray hits the triangle 
+}
+
 void findClosest(
 	bool hit, IntersectionInfo info, inout bool anyHit, inout IntersectionInfo closest
 ) {
@@ -161,6 +224,14 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	back.origin = vec3(-6.0, -6.0, -6.0);
 	back.normal = vec3(0.0, 0.0, 1.0);
 
+	Triangle tri;
+	tri.pos0 = vec3(-2.0, -2.0, -2.0);
+	tri.pos1 = vec3(-2.0, 2.0, 2.0);
+	tri.pos2 = vec3(2.0, 2.0, 2.0);
+	tri.color = vec3(0.0, 1.0, 0.0);
+	tri.roughness = 1.0;
+	
+
 	closest.pos = vec3(0.0);
 	closest.normal = vec3(0.0);
 	closest.t = 10000000.0;
@@ -185,6 +256,7 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	findClosest(sphereRay(r, s, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s2, current), current, anyHit, closest);
 	findClosest(sphereRay(r, s3, current), current, anyHit, closest);
+	findClosest(triangleRay(r, tri, current), current, anyHit, closest);
 
 	return anyHit;
 }
