@@ -49,7 +49,7 @@ struct Triangle {
 	vec3 pos2;
 	vec3 color;
 	float roughness;
-}
+};
 
 // Returns true and sets intersection position and normal, or returns false
 bool planeRay(Ray ray, Plane plane, inout IntersectionInfo info) {
@@ -122,7 +122,7 @@ bool triangleRay(Ray ray, Triangle tri, inout IntersectionInfo info){
     // Step 1: finding P
  
     // check if ray and plane are parallel.
-    float NdotRayDirection = dot(N,dir); 
+    float NdotRayDirection = dot(N, ray.dir); 
     if (abs(NdotRayDirection) < 0.000001)  //almost 0 
         return false;  //they are parallel so they don't intersect ! 
  
@@ -133,10 +133,10 @@ bool triangleRay(Ray ray, Triangle tri, inout IntersectionInfo info){
     info.t = -(dot(N,ray.pos) + d) / NdotRayDirection; 
  
     // check if the triangle is in behind the ray
-    if (t < 0) return false;  //the triangle is behind 
+    if (info.t < 0) return false;  //the triangle is behind 
  
     // compute the intersection point using equation 1
-    info.pos = ray.pos + t * ray.dir; 
+    info.pos = ray.pos + info.t * ray.dir; 
  
     // Step 2: inside-outside test
     vec3 C;  //vector perpendicular to triangle's plane 
