@@ -308,7 +308,7 @@ vec3 getRayDir() {
 
 vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, rayInfo);
-	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos))) / 3.14159265;
+	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos))) / 3.14159265 * 1.3;
 	vec3 color = rayInfo.color;
 
 	IntersectionInfo srInfo;
@@ -358,7 +358,7 @@ void main() {
 		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos)))) * brdf;
 		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 
-		brdf = mix(1.0, brdf * brdfFactor, curRoughness);
+		brdf = mix(brdf, brdf * brdfFactor, curRoughness);
 	}
 
 	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));
