@@ -159,7 +159,7 @@ bool triangleRay(Ray ray, Triangle tri, inout IntersectionInfo info){
     C = cross(edge2, vp2); 
     if (dot(N,C) < 0) return false;  //P is on the right side; 
 	
-	info.normal = C;
+	info.normal = -sign(NdotRayDirection) * normalize(N);
 	info.color = tri.color;
 	info.roughness = tri.roughness;
 
@@ -228,10 +228,9 @@ bool traceScene(Ray r, out IntersectionInfo closest) {
 	tri.pos0 = vec3(-2.0, -2.0, -2.0);
 	tri.pos1 = vec3(-2.0, 2.0, 2.0);
 	tri.pos2 = vec3(2.0, 2.0, 2.0);
-	tri.color = vec3(0.0, 1.0, 0.0);
-	tri.roughness = 1.0;
+	tri.color = vec3(1.0, 1.0, 1.0);
+	tri.roughness = 0.0;
 	
-
 	closest.pos = vec3(0.0);
 	closest.normal = vec3(0.0);
 	closest.t = 10000000.0;
