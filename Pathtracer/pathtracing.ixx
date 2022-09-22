@@ -345,7 +345,7 @@ void main() {
 	const float brdfFactor = 1.0 / 3.14159265;
 	float brdf = 1.0;
 
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		vec3 curNormal = rayInfo.normal;
 		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;

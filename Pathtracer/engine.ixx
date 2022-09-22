@@ -70,8 +70,8 @@ public:
 	void tick(float deltaT, float fps) {
 		glm::mat4 view = cameraViewMatrix(m_pos, glm::vec3(m_rotX, m_rotY, 0.f));
 
-		glm::vec3 right = glm::vec3(glm::row(view, 0)) * 0.05f;
-		glm::vec3 forward = glm::vec3(glm::row(view, 2)) * 0.05f;
+		glm::vec3 right = glm::vec3(glm::row(view, 0)) * deltaT * 2.4f;
+		glm::vec3 forward = glm::vec3(glm::row(view, 2)) * deltaT * 2.4f;
 
 		if (m_mouseCapture) {
 			if (m_movement & 0b0001) {
