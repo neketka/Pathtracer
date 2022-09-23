@@ -291,13 +291,16 @@ layout(location = 2) uniform vec3 frustumBL = vec3(-0.577, -0.577, 0.577);
 layout(location = 3) uniform vec3 frustumBR = vec3(0.577, -0.577, 0.577);
 layout(location = 4) uniform vec3 frustumOrigin = vec3(0.0);
 layout(location = 5) uniform int samples;
-layout(location = 6) uniform float time;
+layout(location = 6) uniform float random;
+layout(location = 7) uniform float jitter;
+layout(location = 8) uniform int bounces;
+layout(location = 9) uniform int shadowSamples;
 
 const vec3 lightPos = vec3(0.0, 4.0, 0.0);
 const float lightRadius = 1.0;
 
 vec3 getRayDir() {
-	vec2 jitter = vec2(sin(time), cos(time)) * 2.0;
+	vec2 jitter = vec2(sin(random * 6.29), cos(random * 6.29)) * jitter;
 	vec2 factor = (vec2(gl_GlobalInvocationID.xy) + jitter) / vec2(gl_NumWorkGroups.xy);
 
 	vec3 top = mix(frustumTL, frustumTR, factor.x);
@@ -317,8 +320,8 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	sr.pos = rayInfo.pos + rayInfo.normal * 0.001;
 
 	float shadow = 0.0;
-	for (int i = 0; i < 2; ++i) {
-		vec3 sampl = sampleSphere(lightPos, lightRadius, vec2(i + time) + r.dir.xy);
+	for (int i = 0; i < shadowSamples; ++i) {
+		vec3 sampl = sampleSphere(lightPos, lightRadius, vec2(i + random) + r.dir.xy);
 		
 		sr.dir = normalize(sampl - sr.pos);
 		traceScene(sr, srInfo);
@@ -345,13 +348,13 @@ void main() {
 	const float brdfFactor = 1.0 / 3.14159265;
 	float brdf = 1.0;
 
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < bounces; ++i) {
 		vec3 curNormal = rayInfo.normal;
 		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;
 		
 		r.pos = rayInfo.pos + rayInfo.normal * 0.001;
-		r.dir = mix(reflect(r.dir, curNormal), hemisphereVector(curNormal, vec2(time) + r.dir.xy), curRoughness);
+		r.dir = mix(reflect(r.dir, curNormal), hemisphereVector(curNormal, vec2(random) + r.dir.xy), curRoughness);
 
 		vec3 rad = getDirectRadiance(r, rayInfo);
 
@@ -451,6 +454,9 @@ public:
 					.uniform(4, glm::vec3(mvp[3]))
 					.uniform(5, m_samples++)
 					.uniform(6, m_dist(m_gen))
+					.uniform(7, m_jitter)
+					.uniform(8, m_bounces)
+					.uniform(9, m_shadowSamples)
 			)
 		);
 
@@ -460,6 +466,10 @@ public:
 private:
 	std::uniform_real_distribution<float> m_dist;
 	std::default_random_engine m_gen;
+
+	int m_bounces = 3;
+	int m_shadowSamples = 2;
+	float m_jitter = 0.5f;
 
 	glm::mat4 m_mvp;
 	int m_samples = 0;
