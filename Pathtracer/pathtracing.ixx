@@ -388,6 +388,7 @@ public:
 		m_depth = new GpuTexture<float>(w, h, true);
 		m_w = w;
 		m_h = h;
+		m_aspect = m_w / static_cast<float>(m_h);
 	}
 
 	GpuTexture<glm::vec4>* getColor() {
@@ -407,8 +408,13 @@ public:
 	int h() {
 		return m_h;
 	}
+
+	float aspect() {
+		return m_aspect;
+	}
 private:
 	int m_w, m_h;
+	float m_aspect;
 	GpuTexture<glm::vec4>* m_color = nullptr;;
 	GpuTexture<float>* m_depth = nullptr;
 };
@@ -420,10 +426,8 @@ public:
 	}
 
 	void render(glm::mat4 viewMatrix, PathtracingBuffer* target) {
-		float invAspect = target->h() / static_cast<float>(target->w());
-
 		glm::mat4 mvp =
-			glm::scale(glm::mat4(1.0), glm::vec3(1.f, invAspect, 1.f)) * viewMatrix;
+			glm::scale(glm::mat4(1.0), glm::vec3(target->aspect(), 1.f, 1.f)) * viewMatrix;
 
 		glm::vec3 frustumTL = glm::vec4(-0.577, 0.577, 0.577, 0.f) * mvp;
 		glm::vec3 frustumTR = glm::vec4(0.577, 0.577, 0.577, 0.f) * mvp;
