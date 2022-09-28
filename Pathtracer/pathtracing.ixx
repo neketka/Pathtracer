@@ -295,9 +295,9 @@ layout(location = 6) uniform float random;
 layout(location = 7) uniform float jitter;
 layout(location = 8) uniform int bounces;
 layout(location = 9) uniform int shadowSamples;
+layout(location = 10) uniform float lightRadius;
 
 const vec3 lightPos = vec3(0.0, 4.0, 0.0);
-const float lightRadius = 1.0;
 
 vec3 getRayDir() {
 	vec2 jitter = vec2(sin(random * 6.29), cos(random * 6.29)) * jitter;
@@ -422,6 +422,15 @@ private:
 	GpuTexture<float>* m_depth = nullptr;
 };
 
+export class PathtracingConfig {
+public:
+	int bounces = 5;
+	int shadowSamples = 2;
+	float jitter = 0.5f;
+	float lightRadius = 1.f;
+	bool progressive = true;
+};
+
 export class PathtracingPass {
 public:
 	PathtracingPass() : m_dist(0.0, 1.0) {
@@ -452,24 +461,28 @@ public:
 					.uniform(2, frustumBL)
 					.uniform(3, frustumBR)
 					.uniform(4, glm::vec3(mvp[3]))
-					.uniform(5, m_samples++)
-					.uniform(6, m_dist(m_gen))
-					.uniform(7, m_jitter)
-					.uniform(8, m_bounces)
-					.uniform(9, m_shadowSamples)
+					.uniform(5, m_config.progressive ? m_samples++ : 0)
+					.uniform(6, m_config.progressive ? m_dist(m_gen) : 0)
+					.uniform(7, m_config.jitter)
+					.uniform(8, m_config.bounces)
+					.uniform(9, m_config.shadowSamples)
+					.uniform(10, m_config.lightRadius)
 			)
 		);
 
 		pass.attach();
 		pass.dispatch(target->w(), target->h(), 1);
 	}
+
+	void setConfig(PathtracingConfig& config) {
+		m_samples = 0;
+		m_config = config;
+	}
 private:
 	std::uniform_real_distribution<float> m_dist;
 	std::default_random_engine m_gen;
 
-	int m_bounces = 3;
-	int m_shadowSamples = 2;
-	float m_jitter = 0.5f;
+	PathtracingConfig m_config;
 
 	glm::mat4 m_mvp;
 	int m_samples = 0;

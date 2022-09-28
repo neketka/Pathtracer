@@ -45,6 +45,10 @@ public:
 		SDL_DestroyWindow(m_window);
 	}
 
+	void setTitle(std::string title) {
+		SDL_SetWindowTitle(m_window, title.c_str());
+	}
+
 	void start() {
 		glewInit();
 
