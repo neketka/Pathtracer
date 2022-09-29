@@ -328,7 +328,7 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 		shadow += float(length(sampl - sr.pos) <= srInfo.t);
 	}
 
-	shadow /= 2.0;
+	shadow /= float(shadowSamples);
 
 	return mix(vec3(0.0), color, float(anyHit)) * lightFactor * shadow;
 }
