@@ -9,7 +9,9 @@ export module pathtracing;
 
 import texture;
 import pass;
+import buffer;
 import shader;
+import gpuscenesystem;
 
 export class PathtracingBuffer {
 public:
@@ -64,8 +66,8 @@ private:
 
 export class PathtracingConfig {
 public:
-	int bounces = 5;
-	int shadowSamples = 2;
+	int bounces = 2;
+	int shadowSamples = 1;
 	float jitter = 0.5f;
 	float lightRadius = 1.f;
 	bool progressive = true;
@@ -77,7 +79,7 @@ public:
 		m_program = pathtracer;
 	}
 
-	void render(glm::mat4 viewMatrix, PathtracingBuffer* target) {
+	void render(glm::mat4 viewMatrix, PathtracingBuffer* target, int tris, GpuBuffer<GpuTri> *gpuTris, GpuBuffer<GpuMat> *gpuMats) {
 		glm::mat4 mvp =
 			glm::scale(glm::mat4(1.0), glm::vec3(target->aspect(), 1.f, 1.f)) * viewMatrix;
 
@@ -107,6 +109,11 @@ public:
 					.uniform(8, m_config.bounces)
 					.uniform(9, m_config.shadowSamples)
 					.uniform(10, m_config.lightRadius)
+					.uniform(11, glm::vec3(0.0, 1.25f, 0.0))
+					.uniform(12, glm::vec3(1.8f, 1.8f, 1.8f))
+					.uniform(13, tris)
+					.storageBuffer(1, gpuTris)
+					.storageBuffer(2, gpuMats)
 			)
 		);
 

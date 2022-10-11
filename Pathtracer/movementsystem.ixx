@@ -92,8 +92,8 @@ public:
 	}
 private:
 	int m_movement = 0; // 0: none, 1: W, 2: A, 4: S, D: 8 and any bitwise combination
-	glm::vec3 m_pos = glm::vec3(0, 2, 0);
-	float m_rotX = -0.2f, m_rotY = 0.01f;
+	glm::vec3 m_pos = glm::vec3(0, 1, 2);
+	float m_rotX = 0.f, m_rotY = -3.14f;
 	bool m_mouseCapture = false;
 
 	Window<ExtEngine>* m_window;

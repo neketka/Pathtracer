@@ -8,6 +8,7 @@ import pathtracingsystem;
 import movementsystem;
 import demosystem;
 import assetsystem;
+import gpuscenesystem;
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	if (SDL_Init(SDL_VIDEO_OPENGL) != 0) {
@@ -15,7 +16,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return -1;
 	}
 
-	ExtEngineBase<MovementSystem, DemoSystem, PathtracingSystem, AssetSystem> engine;
+	ExtEngineBase<MovementSystem, PathtracingSystem, AssetSystem, GpuSceneSystem> engine;
 	Window<ExtEngine> w("Pathtracer", 800, 600, engine);
 
 	engine.getSystem<AssetSystem>().loadFrom("./assets");

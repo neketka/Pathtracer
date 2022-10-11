@@ -44,6 +44,9 @@
     <ClCompile Include="assetsystem.ixx">
       <Filter>systems</Filter>
     </ClCompile>
+    <ClCompile Include="gpuscenesystem.ixx">
+      <Filter>systems</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
@@ -61,5 +64,10 @@
     <Filter Include="systems">
       <UniqueIdentifier>{dd0109e6-ef25-4629-9699-22c5c9827827}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="rapidobj.hpp">
+      <Filter>systems</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,97 +1,5 @@
-#include "/primitives"
 #include "/random"
-
-void findClosest(bool hit, IntersectionInfo info, inout bool anyHit, inout IntersectionInfo closest) {
-	anyHit = anyHit || hit;
-	float mixVal = 1.0;
-
-	if(hit && (info.t < closest.t)) {
-		closest.pos = info.pos;
-		closest.normal = info.normal;
-		closest.t = info.t;
-		closest.color = info.color;
-		closest.roughness = info.roughness;
-	}
-}
-
-bool traceScene(Ray r, out IntersectionInfo closest) {
-	Sphere s;
-	s.center = vec3(-3.0, 3.0, 1.0);
-	s.radius = 1.0;
-	s.color = vec3(1.0);
-	s.roughness = 0.0;
-
-	Sphere s2;
-	s2.center = vec3(3.0, 3.0, 1.0);
-	s2.radius = 1.0;
-	s2.color = vec3(1.0, 0.0, 1.0);
-	s2.roughness = 1.0;
-
-	Sphere s3;
-	s3.center = vec3(-3.0, -3.0, 1.0);
-	s3.radius = 3.0;
-	s3.color = vec3(1.0);
-	s3.roughness = 0.0;
-
-	Plane left;
-	left.origin = vec3(-6.0, -6.0, -6.0);
-	left.normal = vec3(1.0, 0.0, 0.0);
-
-	Plane right;
-	right.origin = vec3(5.0, -6.0, -6.0);
-	right.normal = vec3(-1.0, 0.0, 0.0);
-
-	Plane top;
-	top.origin = vec3(-6.0, 5.0, -6.0);
-	top.normal = vec3(0.0, -1.0, 0.0);
-
-	Plane bottom;
-	bottom.origin = vec3(-6.0, -6.0, -6.0);
-	bottom.normal = vec3(0.0, 1.0, 0.0);
-
-	Plane front;
-	front.origin = vec3(-6.0, -6.0, 5.0);
-	front.normal = vec3(0.0, 0.0, -1.0);
-
-	Plane back;
-	back.origin = vec3(-6.0, -6.0, -6.0);
-	back.normal = vec3(0.0, 0.0, 1.0);
-
-	Triangle tri;
-	tri.pos0 = vec3(-2.0, -2.0, -2.0);
-	tri.pos1 = vec3(-2.0, 2.0, 2.0);
-	tri.pos2 = vec3(2.0, 2.0, 2.0);
-	tri.color = vec3(1.0, 1.0, 1.0);
-	tri.roughness = 0.0;
-
-	closest.pos = vec3(0.0);
-	closest.normal = vec3(0.0);
-	closest.t = 10000000.0;
-	closest.color = vec3(1.0);
-	closest.roughness = 1.0;
-
-	IntersectionInfo current;
-	current.pos = vec3(0.0);
-	current.normal = vec3(0.0);
-	current.t = 10000000.0;
-	current.color = vec3(1.0);
-	current.roughness = 1.0;
-
-	bool anyHit = false;
-
-	findClosest(planeRay(r, left, current), current, anyHit, closest);
-	findClosest(planeRay(r, right, current), current, anyHit, closest);
-	findClosest(planeRay(r, top, current), current, anyHit, closest);
-	findClosest(planeRay(r, bottom, current), current, anyHit, closest);
-	findClosest(planeRay(r, front, current), current, anyHit, closest);
-	findClosest(planeRay(r, back, current), current, anyHit, closest);
-	findClosest(sphereRay(r, s, current), current, anyHit, closest);
-	findClosest(sphereRay(r, s2, current), current, anyHit, closest);
-	findClosest(sphereRay(r, s3, current), current, anyHit, closest);
-	findClosest(triangleRay(r, tri, current), current, anyHit, closest);
-
-	return anyHit;
-}
+#include "/triscene"
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
@@ -108,8 +16,61 @@ layout(location = 7) uniform float jitter;
 layout(location = 8) uniform int bounces;
 layout(location = 9) uniform int shadowSamples;
 layout(location = 10) uniform float lightRadius;
+layout(location = 11) uniform vec3 lightPos = vec3(0, 4, 0);
+layout(location = 12) uniform vec3 lightColor = vec3(1.5, 1.5, 1.5);
+layout(location = 13) uniform int triCount = 0;
 
-const vec3 lightPos = vec3(0.0, 4.0, 0.0);
+layout(std430, binding = 1) buffer TriangleInputs {
+	Triangle triangles[];
+};
+
+layout(std430, binding = 2) buffer Materials {
+	Material materials[];
+};
+
+bool traceScene(Ray r, out IntersectionInfo closest) {
+	bool anyHit = false;
+
+	TriIntersection closestInfo;
+	TriIntersection interInfo;
+	int closestTri = -1;
+
+	closestInfo.t = 1000000;
+
+	for (int i = 0; i < triCount; ++i) {
+		Triangle tri = triangles[i];
+
+		if (triangleRay(r, tri, interInfo)) {
+			if (interInfo.t < closestInfo.t) {
+				closestInfo = interInfo;
+				closestTri = i;
+			}
+			anyHit = true;
+		}
+	}
+
+	Triangle tri = triangles[closestTri];
+	Material mat = materials[int(tri.materialId.x)];
+
+	if (anyHit) {
+		closest.t = closestInfo.t;
+		closest.pos = closestInfo.pos;
+		closest.normal =
+			closestInfo.bary.x * tri.normal0uv1y.xyz + 
+			closestInfo.bary.y * tri.normal1uv2x.xyz + 
+			closestInfo.bary.z * tri.normal2uv2y.xyz;
+		closest.color = mat.colorRoughness.xyz;
+		closest.roughness = mat.colorRoughness.w;
+	} else {
+		closest.t = 1000000;
+		closest.pos = vec3(0);
+		closest.normal = vec3(0);
+		closest.color = vec3(0);
+		closest.roughness = 1;
+	}
+
+	return anyHit;
+}
 
 vec3 getRayDir() {
 	vec2 jitter = vec2(sin(random * 6.29), cos(random * 6.29)) * jitter;
@@ -123,7 +84,7 @@ vec3 getRayDir() {
 
 vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, rayInfo);
-	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos))) / 3.14159265 * 1.3;
+	float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos))) / 3.14159265;
 	vec3 color = rayInfo.color;
 
 	IntersectionInfo srInfo;
@@ -137,12 +98,12 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 
 		sr.dir = normalize(sampl - sr.pos);
 		traceScene(sr, srInfo);
-		shadow += float(length(sampl - sr.pos) <= srInfo.t);
+		shadow += float(length(sampl - sr.pos) < srInfo.t);
 	}
 
 	shadow /= float(shadowSamples);
 
-	return mix(vec3(0.0), color, float(anyHit)) * lightFactor * shadow;
+	return mix(vec3(0.0), color, float(anyHit)) * lightColor * lightFactor * shadow;
 }
 
 void main() {

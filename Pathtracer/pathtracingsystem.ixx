@@ -4,14 +4,15 @@ module;
 
 export module pathtracingsystem;
 
+import <typeinfo>;
 import extengine;
 import pathtracing;
 import fullscreenquad;
 import window;
 import transforms;
 import movementsystem;
-import <typeinfo>;
 import assetsystem;
+import gpuscenesystem;
 
 export class PathtracingSystem : public ExtEngineSystem {
 public:
@@ -24,6 +25,7 @@ public:
 		m_pathtracing = new PathtracingPass(assetSystem.findProgram("pathmain"));
 		m_pBuffer = new PathtracingBuffer;
 		m_moveSystem = &engine.getSystem<MovementSystem>();
+		m_sceneSystem = &engine.getSystem<GpuSceneSystem>();
 	}
 
 	virtual void stop() override {
@@ -41,7 +43,7 @@ public:
 
 	virtual void render(float deltaT, float fps) override {
 		glm::mat4 view = m_moveSystem->getViewMatrix();
-		m_pathtracing->render(view, m_pBuffer);
+		m_pathtracing->render(view, m_pBuffer, m_sceneSystem->getTriCount(), m_sceneSystem->getTriBuffer(), m_sceneSystem->getMatBuffer());
 		m_fQuad->render(m_w, m_h, m_pBuffer->getColor());
 	}
 
@@ -55,4 +57,5 @@ private:
 	PathtracingPass* m_pathtracing;
 	PathtracingBuffer* m_pBuffer;
 	MovementSystem* m_moveSystem;
+	GpuSceneSystem* m_sceneSystem;
 };
