@@ -11,44 +11,17 @@ import shader;
 import pass;
 import texture;
 
-std::string vFullscreenQuad = R"glsl(
-
-layout(location = 0) in vec2 pos;
-layout(location = 0) out vec2 pos_out;
-
-void main() {
-	pos_out = pos * 0.5 + 0.5;
-
-	gl_Position = vec4(pos, 0.5, 1.0);
-}
-
-)glsl";
-
-std::string fFullscreenQuad = R"glsl(
-
-layout(location = 0) out vec4 fragment;
-layout(location = 0) in vec2 pos;
-
-layout(location = 0) uniform sampler2D tex;
-
-void main() {
-	fragment = vec4(texture(tex, pos).rgb, 1.0);
-}
-
-)glsl";
-
 export class FullScreenQuadPass {
 public:
-	FullScreenQuadPass() {
+	FullScreenQuadPass(GpuProgram *fscreenquad) {
 		m_buffer = new GpuBuffer<glm::vec2>(6);
 		m_buffer->setData(m_square, 0, 0, 6);
 		m_vao = new GpuVertexArray<glm::vec2>();
 		m_vao->setBuffer(m_buffer);
-		m_program = new GpuProgram(vFullscreenQuad, fFullscreenQuad);
+		m_program = fscreenquad;
 	}
 
 	~FullScreenQuadPass() {
-		delete m_program;
 		delete m_vao;
 		delete m_buffer;
 	}

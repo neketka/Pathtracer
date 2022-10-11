@@ -123,6 +123,10 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>XCOPY "$(SolutionDir)assets" "$(TargetDir)assets" /I /S /Y
+XCOPY "$(SolutionDir)assets" "$(LocalDebuggerWorkingDirectory)assets"  /I /S /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -140,14 +144,22 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command>XCOPY "$(SolutionDir)assets" "$(TargetDir)assets" /I /S /Y
+XCOPY "$(SolutionDir)assets" "$(LocalDebuggerWorkingDirectory)assets"  /I /S /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="assetsystem.ixx" />
     <ClCompile Include="buffer.ixx" />
-    <ClCompile Include="engine.ixx" />
+    <ClCompile Include="extengine.ixx" />
+    <ClCompile Include="demosystem.ixx" />
     <ClCompile Include="fullscreenquad.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="movementsystem.ixx" />
     <ClCompile Include="pass.ixx" />
     <ClCompile Include="pathtracing.ixx" />
+    <ClCompile Include="pathtracingsystem.ixx" />
     <ClCompile Include="shader.ixx" />
     <ClCompile Include="texture.ixx" />
     <ClCompile Include="transforms.ixx" />

@@ -35,13 +35,19 @@ public:
 	GLuint id() {
 		return m_id;
 	}
+
+	static void addInclude(std::string path, std::string src) {
+		path = "/" + path;
+		src = "\n" + src + "\n";
+		glNamedStringARB(GL_SHADER_INCLUDE_ARB, path.length(), path.c_str(), src.length(), src.c_str());
+	}
 private:
 	GLuint m_id;
 
 	GLuint _compileShader(GLenum type, std::string src) {
 		GLuint id = glCreateShader(type);
 
-		src = "#version 450\n" + src;
+		src = "#version 450\n#extension GL_ARB_shading_language_include : require\n#line 0\n" + src;
 
 		auto cSrc = src.c_str();
 		GLint len = static_cast<GLint>(src.size());

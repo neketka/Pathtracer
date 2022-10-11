@@ -3,7 +3,11 @@
 #include <Windows.h>
 
 import window;
-import engine;
+import extengine;
+import pathtracingsystem;
+import movementsystem;
+import demosystem;
+import assetsystem;
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
 	if (SDL_Init(SDL_VIDEO_OPENGL) != 0) {
@@ -11,9 +15,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return -1;
 	}
 
-	PathtracerEngine engine;
-	Window<PathtracerEngine> w("Pathtracer", 800, 600, engine);
+	ExtEngineBase<MovementSystem, DemoSystem, PathtracingSystem, AssetSystem> engine;
+	Window<ExtEngine> w("Pathtracer", 800, 600, engine);
 
+	engine.getSystem<AssetSystem>().loadFrom("./assets");
 	w.start();
 
 	SDL_Quit();

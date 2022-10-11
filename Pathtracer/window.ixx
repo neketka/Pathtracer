@@ -39,6 +39,9 @@ public:
 		m_running = true;
 
 		SDL_GL_SetSwapInterval(1);
+		glewInit();
+		glEnable(GL_DEBUG_OUTPUT);
+		glDebugMessageCallback(MessageCallback, 0);
 	}
 
 	~Window() {
@@ -50,11 +53,6 @@ public:
 	}
 
 	void start() {
-		glewInit();
-
-		glEnable(GL_DEBUG_OUTPUT);
-		glDebugMessageCallback(MessageCallback, 0);
-
 		int w, h;
 		SDL_GetWindowSize(m_window, &w, &h);
 
