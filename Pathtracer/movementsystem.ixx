@@ -92,7 +92,7 @@ public:
 	}
 private:
 	int m_movement = 0; // 0: none, 1: W, 2: A, 4: S, D: 8 and any bitwise combination
-	glm::vec3 m_pos = glm::vec3(0, 1, 2);
+	glm::vec3 m_pos = glm::vec3(0, 1, 2.1);
 	float m_rotX = 0.f, m_rotY = -3.14f;
 	bool m_mouseCapture = false;
 

@@ -4,6 +4,7 @@
 struct Ray {
   vec3 pos;
   vec3 dir;
+  vec3 dirInv;
 };
 
 struct Triangle {
@@ -45,11 +46,10 @@ struct IntersectionInfo {
 // https://tavianator.com/2022/ray_box_boundary.html
 bool boxRay(Ray ray, Box box) {
   float tmin = 0.0, tmax = 1.0 / 0.0;
-  vec3 dirInv = vec3(1.0) / ray.dir;
 
   for(int i = 0; i < 3; ++i) {
-    float t1 = (box.min[i] - ray.pos[i]) * dirInv[i];
-    float t2 = (box.max[i] - ray.pos[i]) * dirInv[i];
+    float t1 = (box.min[i] - ray.pos[i]) * ray.dirInv[i];
+    float t2 = (box.max[i] - ray.pos[i]) * ray.dirInv[i];
 
     tmin = max(tmin, min(t1, t2));
     tmax = min(tmax, max(t1, t2));

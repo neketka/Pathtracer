@@ -112,8 +112,8 @@ public:
 					.uniform(11, glm::vec3(0.0, 1.25f, 0.0))
 					.uniform(12, glm::vec3(1.8f, 1.8f, 1.8f))
 					.uniform(13, tris)
-					.storageBuffer(1, gpuTris)
-					.storageBuffer(2, gpuMats)
+					.storageBuffer(0, gpuTris)
+					.uniformBuffer(0, gpuMats)
 			)
 		);
 

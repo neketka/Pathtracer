@@ -20,12 +20,12 @@ layout(location = 11) uniform vec3 lightPos = vec3(0, 4, 0);
 layout(location = 12) uniform vec3 lightColor = vec3(1.5, 1.5, 1.5);
 layout(location = 13) uniform int triCount = 0;
 
-layout(std430, binding = 1) buffer TriangleInputs {
+layout(std430, binding = 0) buffer TriangleInputs {
 	Triangle triangles[];
 };
 
-layout(std430, binding = 2) buffer Materials {
-	Material materials[];
+layout(std140, binding = 0) uniform Materials {
+	Material materials[64];
 };
 
 bool traceScene(Ray r, out IntersectionInfo closest) {
@@ -112,6 +112,7 @@ void main() {
 	Ray r;
 	r.pos = frustumOrigin;
 	r.dir = normalize(getRayDir());
+	r.dirInv = vec3(1) / r.dir;
 
 	IntersectionInfo rayInfo;
 
