@@ -1,4 +1,5 @@
 #include "/random"
+#include "/bvh"
 #include "/triscene"
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
@@ -13,10 +14,13 @@ layout(location = 4) uniform int bounces;
 layout(location = 5) uniform float lightRadius;
 layout(location = 6) uniform vec3 lightPos = vec3(0, 4, 0);
 layout(location = 7) uniform vec3 lightColor = vec3(10.0, 10.0, 10.0);
-layout(location = 8) uniform int triCount = 0;
 
 layout(std430, binding = 0) buffer TriangleInputs {
 	Triangle triangles[];
+};
+
+layout(std430, binding = 1) buffer BvhNodes {
+	BvhNode bvhNodes[];
 };
 
 layout(std140, binding = 0) uniform Materials {
@@ -27,22 +31,57 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	bool anyHit = false;
 
 	TriIntersection closestInfo;
-	TriIntersection interInfo;
 	int closestTri = -1;
 
-	closestInfo.t = 1000000;
+	int depth = 1;
+	int index = 0;
+	int next[32];
 
-	for (int i = 0; i < triCount; ++i) {
-		Triangle tri = triangles[i];
+	next[0] = 1;
+	next[1] = -1;
 
-		bool hit = triangleRay(r, tri, interInfo);
-		if (anyReturn && hit) {
+	while (depth > 0) {
+		BvhNode node = bvhNodes[index];
+		int nextIndex = next[depth - 1];
+		
+		if (next[depth] == -1 && node.navigation.w != -1) {
+			Triangle tri = triangles[node.navigation.w];
+			bool hit = triangleRay(r, tri, closestInfo);
+			if (anyReturn && hit) {
 				return true;
-		} else if (hit) {
-			r.end = interInfo.t;
-			closestInfo = interInfo;
-			closestTri = i;
-			anyHit = true;
+			} else if (hit) {
+				r.end = closestInfo.t;
+				closestTri = node.navigation.w;
+				anyHit = true;
+			}
+		} else if (next[depth] == -1) {
+			float left = nodeRay(r, bvhNodes[node.navigation.x]);
+			float right = nodeRay(r, bvhNodes[node.navigation.y]);
+
+			if (left != -1 && right != -1) {
+				if (left < right) {
+					next[depth] = node.navigation.y;
+					index = node.navigation.x;
+				} else {
+					next[depth] = node.navigation.x;
+					index = node.navigation.y;
+				}
+			} else if (left == -1) {
+				next[depth] = node.navigation.y;
+				index = node.navigation.y;
+			} else if (right == -1) {
+				next[depth] = node.navigation.x;
+				index = node.navigation.x;
+			}
+			depth += 1;
+			next[depth] = -1;
+		}
+
+		if (index == nextIndex) {
+			index = node.navigation.z;
+			depth -= 1;
+		} else {
+			index = nextIndex;
 		}
 	}
 
@@ -55,12 +94,6 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		closest.normal = vec3(tri.pos0normx.w, tri.pos1normy.w, tri.pos2normz.w);
 		closest.color = mat.colorRoughness.xyz;
 		closest.roughness = mat.colorRoughness.w;
-	} else {
-		closest.t = 1000000.0;
-		closest.pos = vec3(0.0);
-		closest.normal = vec3(0.0);
-		closest.color = vec3(0.0);
-		closest.roughness = 1;
 	}
 
 	return anyHit;
@@ -77,6 +110,7 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, false, rayInfo);
 
 	if (anyHit) {
+		return vec3(1.0);
 		float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos)));
 		vec3 color = rayInfo.color;
 		IntersectionInfo srInfo;
@@ -114,7 +148,7 @@ void main() {
 	vec3 directLight = getDirectRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
-	for(int i = 0; i < bounces; ++i) {
+	for (int i = 0; i < bounces; ++i) {
 		vec3 curNormal = rayInfo.normal;
 		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;

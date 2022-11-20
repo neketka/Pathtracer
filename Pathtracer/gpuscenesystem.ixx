@@ -2,6 +2,7 @@ module;
 
 #include <typeinfo>
 #include <glm/glm.hpp>
+#include <vector>
 
 export module gpuscenesystem;
 
@@ -16,8 +17,84 @@ export struct GpuTri {
 	glm::uvec4 uvMatId;
 };
 
+export struct GpuBvhNode {
+	glm::vec4 minExtent;
+	glm::vec4 maxExtent;
+	glm::ivec4 navigation;
+	// left, right, parent, tri
+};
+
 export struct GpuMat {
 	glm::vec4 colorRoughness;
+};
+
+class BvhNode {
+public:
+	BvhNode(std::vector<GpuTri>& triangles, int start, int end) {
+		for (int i = start; i < end; ++i) {
+			GpuTri& tri = triangles[i];
+
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
+
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
+		}
+
+		if (start == end - 1) {
+			triIndex = start;
+		} else {
+			int mid = (start + end) / 2;
+
+			left = new BvhNode(triangles, start, mid);
+			right = new BvhNode(triangles, mid, end);
+		}
+	}
+
+	int calcIndices() {
+		int index = 0;
+		calcIndicesAux(index);
+		return index;
+	}
+
+	void convertBvh(std::vector<GpuBvhNode>& nodes) {
+		nodes[index].minExtent = glm::vec4(minExtent, 0.f);
+		nodes[index].maxExtent = glm::vec4(maxExtent, 0.f);
+		if (triIndex != -1) {
+			nodes[index].navigation = glm::uvec4(-1, -1, parentIndex, triIndex);
+		}
+		else {
+			left->parentIndex = index;
+			right->parentIndex = index;
+
+			nodes[index].navigation = glm::ivec4(left->index, right->index, parentIndex, -1);
+
+			left->convertBvh(nodes);
+			right->convertBvh(nodes);
+		}
+	}
+private:
+	glm::vec3 maxExtent;
+	glm::vec3 minExtent;
+
+	int index = -1;
+	int parentIndex = 0;
+	int triIndex = -1;
+
+	BvhNode* left = nullptr;
+	BvhNode* right = nullptr;
+
+	void calcIndicesAux(int& indexCounter) {
+		index = indexCounter++;
+		if (left) {
+			left->calcIndicesAux(indexCounter);
+		}
+		if (right) {
+			right->calcIndicesAux(indexCounter);
+		}
+	}
 };
 
 GpuTri toGpuTri(ObjTriangle& tri, int matId) {
@@ -59,6 +136,12 @@ public:
 
 		m_triCount = tris.size();
 
+		BvhNode bvh(tris, 0, m_triCount);
+		std::vector<GpuBvhNode> bvhNodes(bvh.calcIndices());
+		bvh.convertBvh(bvhNodes);
+		
+		m_bvhBuffer = new GpuBuffer<GpuBvhNode>(bvhNodes.size());
+		m_bvhBuffer->setData(bvhNodes, 0, 0, bvhNodes.size());
 		m_triBuffer->setData(tris, 0, 0, m_triCount);
 		m_matBuffer->setData(mats, 0, 0, mats.size());
 	}
@@ -76,6 +159,10 @@ public:
 		return m_matBuffer;
 	}
 
+	GpuBuffer<GpuBvhNode> *getBvhBuffer() {
+		return m_bvhBuffer;
+	}
+
 	int getTriCount() {
 		return m_triCount;
 	}
@@ -83,4 +170,5 @@ private:
 	int m_triCount = 0;
 	GpuBuffer<GpuTri> *m_triBuffer;
 	GpuBuffer<GpuMat> *m_matBuffer;
+	GpuBuffer<GpuBvhNode> *m_bvhBuffer;
 };

@@ -20,11 +20,6 @@ struct Material {
   vec4 colorRoughness;
 };
 
-struct Box {
-  vec3 min;
-  vec3 max;
-};
-
 struct TriIntersection {
   vec3 pos;
   vec3 bary;
@@ -39,23 +34,8 @@ struct IntersectionInfo {
   float t;
 };
 
-// https://tavianator.com/2022/ray_box_boundary.html
-bool boxRay(Ray ray, Box box) {
-  float tmin = ray.start, tmax = ray.end;
-
-  for(int i = 0; i < 3; ++i) {
-    float t1 = (box.min[i] - ray.pos[i]) * ray.dirInv[i];
-    float t2 = (box.max[i] - ray.pos[i]) * ray.dirInv[i];
-
-    tmin = max(tmin, min(t1, t2));
-    tmax = min(tmax, max(t1, t2));
-  }
-
-  return tmin < tmax;
-}
-
-bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
-  const float EPSILON = 0.0000001;
+bool triangleRay(inout Ray ray, Triangle tri, inout TriIntersection info) {
+  const float EPSILON = 0.000001;
 
   vec3 v0 = tri.pos0normx.xyz;
   vec3 v1 = tri.pos1normy.xyz;
@@ -90,7 +70,7 @@ bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
   info.bary = vec3(u, v, 1 - u - v);
   info.t = t;
 
-  return t > EPSILON;
+  return true;
 }
 
 #endif

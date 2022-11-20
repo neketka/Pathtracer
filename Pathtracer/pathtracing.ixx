@@ -79,7 +79,7 @@ public:
 		m_program = pathtracer;
 	}
 
-	void render(glm::mat4 viewMatrix, PathtracingBuffer* target, int tris, GpuBuffer<GpuTri> *gpuTris, GpuBuffer<GpuMat> *gpuMats) {
+	void render(glm::mat4 viewMatrix, PathtracingBuffer* target, GpuBuffer<GpuTri> *gpuTris, GpuBuffer<GpuBvhNode> *gpuBvh, GpuBuffer<GpuMat> *gpuMats) {
 		glm::mat4 mvp = viewMatrix * glm::mat4(
 			target->aspect(), 0.f, 0.f, 0.f,
 			0.f, 1.f, 0.f, 0.f,
@@ -105,8 +105,8 @@ public:
 					.uniform(5, m_config.lightRadius)
 					.uniform(6, glm::vec3(0.0, 2.f, 0.0))
 					.uniform(7, glm::vec3(1.5f, 1.5f, 1.5f))
-					.uniform(8, tris)
 					.storageBuffer(0, gpuTris)
+					.storageBuffer(1, gpuBvh)
 					.uniformBuffer(0, gpuMats)
 			)
 		);

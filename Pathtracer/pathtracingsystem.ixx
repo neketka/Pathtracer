@@ -43,7 +43,7 @@ public:
 
 	virtual void render(float deltaT, float fps) override {
 		glm::mat4 view = m_moveSystem->getViewMatrix();
-		m_pathtracing->render(view, m_pBuffer, m_sceneSystem->getTriCount(), m_sceneSystem->getTriBuffer(), m_sceneSystem->getMatBuffer());
+		m_pathtracing->render(view, m_pBuffer, m_sceneSystem->getTriBuffer(), m_sceneSystem->getBvhBuffer(), m_sceneSystem->getMatBuffer());
 		m_fQuad->render(m_w, m_h, m_pBuffer->getColor());
 	}
 
