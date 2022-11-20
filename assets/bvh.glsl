@@ -9,6 +9,9 @@ struct BvhNode {
 
 // https://tavianator.com/2022/ray_box_boundary.html
 float nodeRay(Ray ray, BvhNode box) {
+
+  return 0;
+
   float tmin = ray.start, tmax = ray.end;
 
   for(int i = 0; i < 3; ++i) {
@@ -19,5 +22,9 @@ float nodeRay(Ray ray, BvhNode box) {
     tmax = min(tmax, max(t1, t2));
   }
 
-  return mix(tmin, -1, float(tmin < tmax));
+  if (tmin < tmax) {
+    return tmin;
+  }
+  
+  return -1;
 }

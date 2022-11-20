@@ -37,15 +37,16 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	int index = 0;
 	int next[32];
 
-	next[0] = 1;
+	next[0] = 0;
 	next[1] = -1;
 
 	while (depth > 0) {
 		BvhNode node = bvhNodes[index];
 		int nextIndex = next[depth - 1];
 		
-		if (next[depth] == -1 && node.navigation.w != -1) {
+		if (node.navigation.w != -1) {
 			Triangle tri = triangles[node.navigation.w];
+
 			bool hit = triangleRay(r, tri, closestInfo);
 			if (anyReturn && hit) {
 				return true;
@@ -59,22 +60,35 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 			float right = nodeRay(r, bvhNodes[node.navigation.y]);
 
 			if (left != -1 && right != -1) {
-				if (left < right) {
+				if (left <= right) {
 					next[depth] = node.navigation.y;
 					index = node.navigation.x;
 				} else {
 					next[depth] = node.navigation.x;
 					index = node.navigation.y;
 				}
-			} else if (left == -1) {
+
+				depth += 1;
+				next[depth] = -1;
+				
+				continue;
+			} else if (left == -1 && right != -1) {
 				next[depth] = node.navigation.y;
 				index = node.navigation.y;
-			} else if (right == -1) {
+
+				depth += 1;
+				next[depth] = -1;
+
+				continue;
+			} else if (left != -1 && right == -1) {
 				next[depth] = node.navigation.x;
 				index = node.navigation.x;
+
+				depth += 1;
+				next[depth] = -1;
+
+				continue;
 			}
-			depth += 1;
-			next[depth] = -1;
 		}
 
 		if (index == nextIndex) {
@@ -82,6 +96,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 			depth -= 1;
 		} else {
 			index = nextIndex;
+			next[depth] = -1;
 		}
 	}
 
@@ -110,12 +125,14 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, false, rayInfo);
 
 	if (anyHit) {
-		return vec3(1.0);
-		float lightFactor = max(0.0, dot(rayInfo.normal, normalize(lightPos - rayInfo.pos)));
+		vec3 toLight = lightPos - rayInfo.pos;
+		float lightDistRecip = 1 / length(toLight);
+
+		float lightFactor = max(0.0, dot(rayInfo.normal, toLight * lightDistRecip)) * lightDistRecip * lightDistRecip;
 		vec3 color = rayInfo.color;
 		IntersectionInfo srInfo;
 
-		vec3 sampl = sampleSphere(lightPos, lightRadius, vec2(random) + r.dir.xz);
+		vec3 sampl = sampleSphere(lightPos, lightRadius, vec2(random) + r.dir.xy);
 		vec3 toSampl = sampl - rayInfo.pos;
 		float dist = length(toSampl);
 
@@ -125,12 +142,12 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 		sr.dir = (sampl - sr.pos) / dist;
 		sr.end = dist;
 
-		float shadow = float(traceScene(sr, true, srInfo));
+		float shadow = float(!traceScene(sr, true, srInfo));
 
 		return color * lightColor * lightFactor * shadow;
 	}
 
-	return vec3(0.0);
+	return vec3(0.0529, 0.0808, 0.0922);
 }
 
 void main() {
@@ -148,7 +165,7 @@ void main() {
 	vec3 directLight = getDirectRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
-	for (int i = 0; i < bounces; ++i) {
+	for (int i = 0; i < 0; ++i) {
 		vec3 curNormal = rayInfo.normal;
 		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;

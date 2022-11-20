@@ -2,6 +2,7 @@ module;
 
 #include <typeinfo>
 #include <glm/glm.hpp>
+#include <algorithm>
 #include <vector>
 
 export module gpuscenesystem;
@@ -35,12 +36,12 @@ public:
 			GpuTri& tri = triangles[i];
 
 			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos1normy));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos2normz));
 
 			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos1normy));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos2normz));
 		}
 
 		if (start == end - 1) {
