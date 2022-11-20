@@ -10,16 +10,10 @@ import buffer;
 import assetsystem;
 
 export struct GpuTri {
-	glm::vec4 pos0uv0x;
-	glm::vec4 pos1uv0y;
-	glm::vec4 pos2uv1x;
-
-	glm::vec4 normal0uv1y;
-	glm::vec4 normal1uv2x;
-	glm::vec4 normal2uv2y;
-
-	glm::vec4 materialId;
-	glm::vec4 padding0;
+	glm::vec4 pos0normx;
+	glm::vec4 pos1normy;
+	glm::vec4 pos2normz;
+	glm::uvec4 uvMatId;
 };
 
 export struct GpuMat {
@@ -27,14 +21,16 @@ export struct GpuMat {
 };
 
 GpuTri toGpuTri(ObjTriangle& tri, int matId) {
+	glm::vec3 normal = (tri.normal0 + tri.normal1 + tri.normal2) / 3.f;
+	auto uv0 = glm::packHalf2x16(tri.uv0);
+	auto uv1 = glm::packHalf2x16(tri.uv1);
+	auto uv2 = glm::packHalf2x16(tri.uv2);
+
 	return GpuTri{
-		.pos0uv0x = glm::vec4(tri.pos0, tri.uv0.x),
-		.pos1uv0y = glm::vec4(tri.pos1, tri.uv0.y),
-		.pos2uv1x = glm::vec4(tri.pos2, tri.uv1.x),
-		.normal0uv1y = glm::vec4(tri.normal0, tri.uv1.y),
-		.normal1uv2x = glm::vec4(tri.normal1, tri.uv2.x),
-		.normal2uv2y = glm::vec4(tri.normal2, tri.uv2.y),
-		.materialId = glm::vec4(matId)
+		.pos0normx = glm::vec4(tri.pos0, normal.x),
+		.pos1normy = glm::vec4(tri.pos1, normal.y),
+		.pos2normz = glm::vec4(tri.pos2, normal.z),
+		.uvMatId = glm::uvec4(uv0, uv1, uv2, matId)
 	};
 }
 
@@ -57,8 +53,8 @@ public:
 		}
 
 		std::vector<GpuMat> mats = {
-			{ .colorRoughness = glm::vec4(1, 1, 1, 0) },
-			{ .colorRoughness = glm::vec4(1, 1, 1, 1) }
+			{ .colorRoughness = glm::vec4(1.f, 1.f, 1.f, 0.f) },
+			{ .colorRoughness = glm::vec4(0.8f, 0.8f, 0.8f, 1.f) }
 		};
 
 		m_triCount = tris.size();

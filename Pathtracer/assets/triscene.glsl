@@ -5,19 +5,15 @@ struct Ray {
   vec3 pos;
   vec3 dir;
   vec3 dirInv;
+  float start;
+  float end;
 };
 
 struct Triangle {
-  vec4 pos0uv0x;
-  vec4 pos1uv0y;
-  vec4 pos2uv1x;
-
-  vec4 normal0uv1y;
-  vec4 normal1uv2x;
-  vec4 normal2uv2y;
-
-  vec4 materialId;
-  vec4 padding0;
+	vec4 pos0normx;
+	vec4 pos1normy;
+	vec4 pos2normz;
+	uvec4 uvMatId;
 };
 
 struct Material {
@@ -45,7 +41,7 @@ struct IntersectionInfo {
 
 // https://tavianator.com/2022/ray_box_boundary.html
 bool boxRay(Ray ray, Box box) {
-  float tmin = 0.0, tmax = 1.0 / 0.0;
+  float tmin = ray.start, tmax = ray.end;
 
   for(int i = 0; i < 3; ++i) {
     float t1 = (box.min[i] - ray.pos[i]) * ray.dirInv[i];
@@ -61,9 +57,9 @@ bool boxRay(Ray ray, Box box) {
 bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
   const float EPSILON = 0.0000001;
 
-  vec3 v0 = tri.pos0uv0x.xyz;
-  vec3 v1 = tri.pos1uv0y.xyz;
-  vec3 v2 = tri.pos2uv1x.xyz;
+  vec3 v0 = tri.pos0normx.xyz;
+  vec3 v1 = tri.pos1normy.xyz;
+  vec3 v2 = tri.pos2normz.xyz;
 
   vec3 e1 = v1 - v0;
   vec3 e2 = v2 - v0;
@@ -86,6 +82,9 @@ bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
     return false;
 
   float t = f * dot(e2, q);
+
+  if (t < ray.start || t > ray.end)
+    return false;
 
   info.pos = ray.pos + ray.dir * t;
   info.bary = vec3(u, v, 1 - u - v);

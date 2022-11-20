@@ -80,13 +80,12 @@ public:
 	}
 
 	void render(glm::mat4 viewMatrix, PathtracingBuffer* target, int tris, GpuBuffer<GpuTri> *gpuTris, GpuBuffer<GpuMat> *gpuMats) {
-		glm::mat4 mvp =
-			glm::scale(glm::mat4(1.0), glm::vec3(target->aspect(), 1.f, 1.f)) * viewMatrix;
-
-		glm::vec3 frustumTL = glm::vec4(-0.577, 0.577, 0.577, 0.f) * mvp;
-		glm::vec3 frustumTR = glm::vec4(0.577, 0.577, 0.577, 0.f) * mvp;
-		glm::vec3 frustumBL = glm::vec4(-0.577, -0.577, 0.577, 0.f) * mvp;
-		glm::vec3 frustumBR = glm::vec4(0.577, -0.577, 0.577, 0.f) * mvp;
+		glm::mat4 mvp = viewMatrix * glm::mat4(
+			target->aspect(), 0.f, 0.f, 0.f,
+			0.f, 1.f, 0.f, 0.f,
+			0.f, 0.f, 1.f, 0.f,
+			0.f, 0.f, 0.f, 1.f
+		);
 
 		if (mvp != m_mvp) {
 			m_samples = 0;
@@ -98,20 +97,15 @@ public:
 			std::forward<GpuProgramState>(
 				GpuProgramState()
 					.image(0, target->getColor())
-					.uniform(0, frustumTL)
-					.uniform(1, frustumTR)
-					.uniform(2, frustumBL)
-					.uniform(3, frustumBR)
-					.uniform(4, glm::vec3(mvp[3]))
-					.uniform(5, m_config.progressive ? m_samples++ : 0)
-					.uniform(6, m_config.progressive ? m_dist(m_gen) : 0)
-					.uniform(7, m_config.jitter)
-					.uniform(8, m_config.bounces)
-					.uniform(9, m_config.shadowSamples)
-					.uniform(10, m_config.lightRadius)
-					.uniform(11, glm::vec3(0.0, 1.25f, 0.0))
-					.uniform(12, glm::vec3(1.8f, 1.8f, 1.8f))
-					.uniform(13, tris)
+					.uniform(0, mvp)
+					.uniform(1, m_config.progressive ? m_samples++ : 0)
+					.uniform(2, m_config.progressive ? m_dist(m_gen) : 0)
+					.uniform(3, m_config.jitter)
+					.uniform(4, m_config.bounces)
+					.uniform(5, m_config.lightRadius)
+					.uniform(6, glm::vec3(0.0, 2.f, 0.0))
+					.uniform(7, glm::vec3(1.5f, 1.5f, 1.5f))
+					.uniform(8, tris)
 					.storageBuffer(0, gpuTris)
 					.uniformBuffer(0, gpuMats)
 			)

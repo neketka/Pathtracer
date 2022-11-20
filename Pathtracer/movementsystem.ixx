@@ -54,8 +54,8 @@ public:
 	virtual void tick(float deltaT, float fps) override {
 		glm::mat4 view = getViewMatrix();
 
-		glm::vec3 right = glm::vec3(glm::row(view, 0)) * deltaT * 2.4f;
-		glm::vec3 forward = glm::vec3(glm::row(view, 2)) * deltaT * 2.4f;
+		glm::vec3 right = glm::vec3(view[0]) * deltaT * 2.4f;
+		glm::vec3 forward = glm::vec3(view[2]) * deltaT * 2.4f;
 
 		if (m_mouseCapture) {
 			if (m_movement & 0b0001) {
@@ -87,8 +87,7 @@ public:
 	}
 
 	glm::mat4 getViewMatrix() {
-		return cameraViewMatrix(m_pos, glm::vec3(m_rotX, m_rotY, 0.f)
-		);
+		return cameraViewMatrix(m_pos, glm::vec3(m_rotX, m_rotY, 0.f));
 	}
 private:
 	int m_movement = 0; // 0: none, 1: W, 2: A, 4: S, D: 8 and any bitwise combination
