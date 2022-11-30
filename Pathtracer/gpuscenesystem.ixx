@@ -71,7 +71,6 @@ public:
 			
 			left = new BvhNode(b.leftTris, b.leftIndexList);
 			right = new BvhNode(b.rightTris, b.rightIndexList);
-		
 		}
 	}
 
@@ -108,8 +107,8 @@ public:
 		for (int i = 0; i < triangles.size(); ++i) {
 			GpuTri& tri = triangles[i];
 			glm::vec3 baryCenter(tri.pos0normx + tri.pos1normy + tri.pos2normz);
-			int pos = baryCenter[axis] / 3;
-			if (pos < candidatePos) {
+			int pos = baryCenter[axis] / 3.f;
+			if (pos <= candidatePos) {
 				leftCount++;
 				leftTris.push_back(tri);
 				leftIndexList.push_back(indexList[i]);
@@ -131,8 +130,12 @@ public:
 	}
 
 	float calculateArea(std::vector<GpuTri> triangles) {
-		glm::vec3 maxExtent;
-		glm::vec3 minExtent;
+		if (triangles.size() == 0) {
+			return std::numeric_limits<float>::max();
+		}
+
+		glm::vec3 maxExtent(triangles[0].pos0normx);
+		glm::vec3 minExtent = maxExtent;
 		for (int i = 0; i < triangles.size(); ++i) {
 			GpuTri& tri = triangles[i];
 
