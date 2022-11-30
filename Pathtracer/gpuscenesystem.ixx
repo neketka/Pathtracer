@@ -74,6 +74,32 @@ public:
 		}
 	}
 
+	BvhNode(std::vector<GpuTri>& triangles, int start, int end) {
+		minExtent = glm::vec3(triangles[start].pos0normx);
+		maxExtent = minExtent;
+		for (int i = start; i < end; ++i) {
+			GpuTri& tri = triangles[i];
+
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos1normy));
+			minExtent = glm::min(minExtent, glm::vec3(tri.pos2normz));
+
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos1normy));
+			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos2normz));
+		}
+
+		if (start == end - 1) {
+			triIndex = start;
+		}
+		else {
+			int mid = (start + end) / 2;
+
+			left = new BvhNode(triangles, start, mid);
+			right = new BvhNode(triangles, mid, end);
+		}
+	}
+
 	int calcIndices() {
 		int index = 0;
 		calcIndicesAux(index);
