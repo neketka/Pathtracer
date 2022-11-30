@@ -268,7 +268,8 @@ public:
 			indexes[i] = i;
 		}
 
-		BvhNode bvh(tris, indexes);
+		//BvhNode bvh(tris, indexes);
+		BvhNode bvh(tris, 0, tris.size());
 		std::vector<GpuBvhNode> bvhNodes(bvh.calcIndices());
 		bvh.convertBvh(bvhNodes);
 		
