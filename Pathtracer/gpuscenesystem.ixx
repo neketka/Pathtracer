@@ -41,7 +41,7 @@ struct bestAxis {
 class BvhNode {
 public:
 	BvhNode(std::vector<GpuTri>& triangles, std::vector<int> indexList) {
-		minExtent = glm::vec3(triangles[indexList[0]].pos0normx);
+		minExtent = glm::vec3(triangles[0].pos0normx);
 		maxExtent = minExtent;
 
 		for (int i = 0; i < triangles.size(); ++i) {
@@ -88,7 +88,7 @@ public:
 			for (int i = 0; i < triangles.size(); ++i) {
 				GpuTri& tri = triangles[i];
 				glm::vec3 candidatePos(tri.pos0normx + tri.pos1normy + tri.pos2normz);
-				bestAxis b = evaluateSAH(triangles, a, candidatePos[a]/3, indexList);
+				bestAxis b = evaluateSAH(triangles, a, candidatePos[a] / 3.f, indexList);
 				if (b.cost < bestCost) {
 					best = b;
 				}
