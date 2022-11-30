@@ -29,6 +29,7 @@ layout(std140, binding = 0) uniform Materials {
 
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	bool anyHit = false;
+	closest.anyHit = false;
 
 	TriIntersection closestInfo;
 	int closestTri = -1;
@@ -60,7 +61,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 			float right = nodeRay(r, bvhNodes[node.navigation.y]);
 
 			if (left != -1 && right != -1) {
-				if (left <= right) {
+				if (left < right) {
 					next[depth] = node.navigation.y;
 					index = node.navigation.x;
 				} else {
@@ -109,6 +110,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		closest.normal = vec3(tri.pos0normx.w, tri.pos1normy.w, tri.pos2normz.w);
 		closest.color = mat.colorRoughness.xyz;
 		closest.roughness = mat.colorRoughness.w;
+		closest.anyHit = true;
 	}
 
 	return anyHit;
@@ -147,7 +149,7 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 		return color * lightColor * lightFactor * shadow;
 	}
 
-	return vec3(0.0529, 0.0808, 0.0922);
+	return vec3(0);
 }
 
 void main() {
@@ -165,7 +167,11 @@ void main() {
 	vec3 directLight = getDirectRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
-	for (int i = 0; i < 0; ++i) {
+	for (int i = 0; i < bounces; ++i) {
+		if (!rayInfo.anyHit) {
+			break;
+		}
+
 		vec3 curNormal = rayInfo.normal;
 		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;

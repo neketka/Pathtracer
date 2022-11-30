@@ -207,12 +207,19 @@ public:
 		m_matBuffer = new GpuBuffer<GpuMat>(16);
 
 		auto& cboxMeshes = extEngine.getSystem<AssetSystem>().findModel("cornellbox").meshes;
+		auto& monkeyMeshes = extEngine.getSystem<AssetSystem>().findModel("suzanne").meshes;
 
 		std::vector<GpuTri> tris;
 
 		for (int i = 0; i < cboxMeshes.size(); ++i) {
 			for (auto& tri : cboxMeshes[i]) {
 				tris.push_back(toGpuTri(tri, i < 6 ? 1 : 0));
+			}
+		}
+
+		for (int i = 0; i < monkeyMeshes.size(); ++i) {
+			for (auto& tri : monkeyMeshes[i]) {
+				//tris.push_back(toGpuTri(tri, 1));
 			}
 		}
 

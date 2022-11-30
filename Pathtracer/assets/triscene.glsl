@@ -32,6 +32,7 @@ struct IntersectionInfo {
   vec3 color;
   float roughness;
   float t;
+  bool anyHit;
 };
 
 bool triangleRay(inout Ray ray, Triangle tri, inout TriIntersection info) {
