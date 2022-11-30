@@ -35,71 +35,66 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	int closestTri = -1;
 
 	int depth = 1;
-	int index = 0;
+	int nodeIndex = 0;
 	int next[32];
 
-	next[0] = 0;
-	next[1] = -1;
+	next[0] = -1;
+	next[1] = 0;
 
-	while (depth > 0) {
-		BvhNode node = bvhNodes[index];
-		int nextIndex = next[depth - 1];
-		
-		if (node.navigation.w != -1) {
-			Triangle tri = triangles[node.navigation.w];
+	// https://developer.nvidia.com/blog/thinking-parallel-part-ii-tree-traversal-gpu/
+	do {
+		BvhNode node = bvhNodes[nodeIndex];
+		BvhNode left = bvhNodes[node.navigation.x];
+		BvhNode right = bvhNodes[node.navigation.y];
+
+		float leftInter = nodeRay(r, bvhNodes[node.navigation.x]);
+		float rightInter = nodeRay(r, bvhNodes[node.navigation.y]);
+
+		if (leftInter != -1 && left.navigation.w != -1) {
+			Triangle tri = triangles[left.navigation.w];
 
 			bool hit = triangleRay(r, tri, closestInfo);
 			if (anyReturn && hit) {
 				return true;
 			} else if (hit) {
 				r.end = closestInfo.t;
-				closestTri = node.navigation.w;
+				closestTri = left.navigation.w;
 				anyHit = true;
 			}
-		} else if (next[depth] == -1) {
-			float left = nodeRay(r, bvhNodes[node.navigation.x]);
-			float right = nodeRay(r, bvhNodes[node.navigation.y]);
+		}
 
-			if (left != -1 && right != -1) {
-				if (left < right) {
-					next[depth] = node.navigation.y;
-					index = node.navigation.x;
-				} else {
-					next[depth] = node.navigation.x;
-					index = node.navigation.y;
-				}
+		if (rightInter != -1 && right.navigation.w != -1) {
+			Triangle tri = triangles[right.navigation.w];
 
-				depth += 1;
-				next[depth] = -1;
-				
-				continue;
-			} else if (left == -1 && right != -1) {
-				next[depth] = node.navigation.y;
-				index = node.navigation.y;
-
-				depth += 1;
-				next[depth] = -1;
-
-				continue;
-			} else if (left != -1 && right == -1) {
-				next[depth] = node.navigation.x;
-				index = node.navigation.x;
-
-				depth += 1;
-				next[depth] = -1;
-
-				continue;
+			bool hit = triangleRay(r, tri, closestInfo);
+			if (anyReturn && hit) {
+				return true;
+			} else if (hit) {
+				r.end = closestInfo.t;
+				closestTri = right.navigation.w;
+				anyHit = true;
 			}
 		}
-
-		if (index == nextIndex) {
-			index = node.navigation.z;
-			depth -= 1;
+		
+		bool traverseL = (leftInter != -1 && left.navigation.w == -1);
+		bool traverseR = (rightInter != -1 && right.navigation.w == -1);
+		
+		if (!traverseL && !traverseR) {
+			nodeIndex = next[--depth];
 		} else {
-			index = nextIndex;
-			next[depth] = -1;
+			if (traverseL && traverseR) {
+				if (leftInter < rightInter) {
+					nodeIndex = node.navigation.x;
+					next[depth++] = node.navigation.y;
+				} else {
+					nodeIndex = node.navigation.y;
+					next[depth++] = node.navigation.x;
+				}
+			} else {
+				nodeIndex = traverseL ? node.navigation.x : node.navigation.y;
+			}
 		}
-	}
+	} while(nodeIndex != -1);
 
 	Triangle tri = triangles[closestTri];
 	Material mat = materials[tri.uvMatId.w];

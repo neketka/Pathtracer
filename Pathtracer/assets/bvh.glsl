@@ -7,10 +7,10 @@ struct BvhNode {
 	// left, right, parent, tri
 };
 
-// https://tavianator.com/2022/ray_box_boundary.html
+// https://gist.github.com/DomNomNom/46bb1ce47f68d255fd5d
 float nodeRay(Ray ray, BvhNode box) {
-  vec3 tMin = (box.minExtent.xyz - ray.pos) * ray.dirInv;
-  vec3 tMax = (box.maxExtent.xyz - ray.pos) * ray.dirInv;
+  vec3 tMin = (box.minExtent.xyz + vec3(0.001) - ray.pos) * ray.dirInv;
+  vec3 tMax = (box.maxExtent.xyz - vec3(0.001) - ray.pos) * ray.dirInv;
 
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);

@@ -4,6 +4,8 @@ module;
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <vector>
+#include <queue>
+#include <random>
 
 export module gpuscenesystem;
 
@@ -102,7 +104,21 @@ public:
 
 	int calcIndices() {
 		int index = 0;
-		calcIndicesAux(index);
+
+		std::queue<BvhNode *> nodes;
+		nodes.push(this);
+
+		while (!nodes.empty()) {
+			BvhNode *node = nodes.front();
+			nodes.pop();
+
+			node->index = index++;
+			if (node->left)
+				nodes.push(node->left);
+			if (node->right)
+				nodes.push(node->right);
+		}
+
 		return index;
 	}
 
@@ -204,16 +220,6 @@ private:
 
 	BvhNode* left = nullptr;
 	BvhNode* right = nullptr;
-
-	void calcIndicesAux(int& indexCounter) {
-		index = indexCounter++;
-		if (left) {
-			left->calcIndicesAux(indexCounter);
-		}
-		if (right) {
-			right->calcIndicesAux(indexCounter);
-		}
-	}
 };
 
 GpuTri toGpuTri(ObjTriangle& tri, int matId) {
@@ -229,7 +235,6 @@ GpuTri toGpuTri(ObjTriangle& tri, int matId) {
 		.uvMatId = glm::uvec4(uv0, uv1, uv2, matId)
 	};
 }
-
 export class GpuSceneSystem : public ExtEngineSystem {
 public:
 	GpuSceneSystem() {}
@@ -243,15 +248,15 @@ public:
 
 		std::vector<GpuTri> tris;
 
-		for (int i = 0; i < cboxMeshes.size(); ++i) {
-			for (auto& tri : cboxMeshes[i]) {
-				tris.push_back(toGpuTri(tri, i < 6 ? 1 : 0));
-			}
-		}
-
 		for (int i = 0; i < monkeyMeshes.size(); ++i) {
 			for (auto& tri : monkeyMeshes[i]) {
 				//tris.push_back(toGpuTri(tri, 1));
+			}
+		}
+
+		for (int i = 0; i < cboxMeshes.size(); ++i) {
+			for (auto& tri : cboxMeshes[i]) {
+				tris.push_back(toGpuTri(tri, i < 6 ? 1 : 0));
 			}
 		}
 
