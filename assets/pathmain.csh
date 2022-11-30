@@ -50,34 +50,40 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		float leftInter = nodeRay(r, bvhNodes[node.navigation.x]);
 		float rightInter = nodeRay(r, bvhNodes[node.navigation.y]);
 
-		if (leftInter != -1 && left.navigation.w != -1) {
-			Triangle tri = triangles[left.navigation.w];
+		Triangle tri;
 
-			bool hit = triangleRay(r, tri, closestInfo);
-			if (anyReturn && hit) {
-				return true;
-			} else if (hit) {
-				r.end = closestInfo.t;
-				closestTri = left.navigation.w;
-				anyHit = true;
+		if (leftInter != -1 && left.navigation.w > 0) {
+			for (int i = 0; i < left.navigation.w; ++i) {
+				tri = triangles[left.navigation.z + i];
+
+				bool hit = triangleRay(r, tri, closestInfo);
+				if (anyReturn && hit) {
+					return true;
+				} else if (hit) {
+					r.end = closestInfo.t;
+					closestTri = left.navigation.w;
+					anyHit = true;
+				}
 			}
 		}
 
-		if (rightInter != -1 && right.navigation.w != -1) {
-			Triangle tri = triangles[right.navigation.w];
+		if (rightInter != -1 && right.navigation.w > 0) {
+			for (int i = 0; i < right.navigation.w; ++i) {
+				tri = triangles[right.navigation.z + i];
 
-			bool hit = triangleRay(r, tri, closestInfo);
-			if (anyReturn && hit) {
-				return true;
-			} else if (hit) {
-				r.end = closestInfo.t;
-				closestTri = right.navigation.w;
-				anyHit = true;
+				bool hit = triangleRay(r, tri, closestInfo);
+				if (anyReturn && hit) {
+					return true;
+				} else if (hit) {
+					r.end = closestInfo.t;
+					closestTri = right.navigation.w;
+					anyHit = true;
+				}
 			}
 		}
 		
-		bool traverseL = (leftInter != -1 && left.navigation.w == -1);
-		bool traverseR = (rightInter != -1 && right.navigation.w == -1);
+		bool traverseL = (leftInter != -1 && left.navigation.w == 0);
+		bool traverseR = (rightInter != -1 && right.navigation.w == 0);
 		
 		if (!traverseL && !traverseR) {
 			nodeIndex = next[--depth];
@@ -102,7 +108,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	if (anyHit) {
 		closest.t = closestInfo.t;
 		closest.pos = closestInfo.pos;
-		closest.normal = vec3(tri.pos0normx.w, tri.pos1normy.w, tri.pos2normz.w);
+		closest.normal = closestInfo.normal;
 		closest.color = mat.colorRoughness.xyz;
 		closest.roughness = mat.colorRoughness.w;
 		closest.anyHit = true;

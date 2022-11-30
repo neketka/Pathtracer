@@ -4,7 +4,7 @@ struct BvhNode {
 	vec4 minExtent;
 	vec4 maxExtent;
 	ivec4 navigation;
-	// left, right, parent, tri
+	// left, right, firstTri, triCount
 };
 
 // https://gist.github.com/DomNomNom/46bb1ce47f68d255fd5d

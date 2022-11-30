@@ -6,6 +6,8 @@ module;
 #include <vector>
 #include <queue>
 #include <random>
+#include <bvh/sweep_sah_builder.hpp>
+#include <bvh/triangle.hpp>
 
 export module gpuscenesystem;
 
@@ -18,208 +20,17 @@ export struct GpuTri {
 	glm::vec4 pos1normy;
 	glm::vec4 pos2normz;
 	glm::uvec4 uvMatId;
-
 };
 
 export struct GpuBvhNode {
 	glm::vec4 minExtent;
 	glm::vec4 maxExtent;
 	glm::ivec4 navigation;
-	// left, right, parent, tri
+	// left, right, firstTri, triCount
 };
 
 export struct GpuMat {
 	glm::vec4 colorRoughness;
-};
-
-struct bestAxis {
-	float cost;
-	std::vector<GpuTri> leftTris;
-	std::vector<GpuTri> rightTris;
-	std::vector<int> leftIndexList;
-	std::vector<int> rightIndexList;
-};
-
-class BvhNode {
-public:
-	BvhNode(std::vector<GpuTri>& triangles, std::vector<int> indexList) {
-		minExtent = glm::vec3(triangles[0].pos0normx);
-		maxExtent = minExtent;
-
-		for (int i = 0; i < triangles.size(); ++i) {
-			GpuTri& tri = triangles[i];
-
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos1normy));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos2normz));
-
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos1normy));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos2normz));
-		}
-
-		triIndexList = indexList;
-
-		if ( triangles.size() == 1) {
-			//triIndex = start;
-			triIndex = triIndexList[0];
-		}
-		else {
-			/*int mid = (start + end) / 2;
-
-			left = new BvhNode(triangles, start, mid);
-			right = new BvhNode(triangles, mid, end);*/
-			bestAxis b = bestSplit(triangles, indexList);
-			
-			left = new BvhNode(b.leftTris, b.leftIndexList);
-			right = new BvhNode(b.rightTris, b.rightIndexList);
-		}
-	}
-
-	BvhNode(std::vector<GpuTri>& triangles, int start, int end) {
-		minExtent = glm::vec3(triangles[start].pos0normx);
-		maxExtent = minExtent;
-		for (int i = start; i < end; ++i) {
-			GpuTri& tri = triangles[i];
-
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos1normy));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos2normz));
-
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos1normy));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos2normz));
-		}
-
-		if (start == end - 1) {
-			triIndex = start;
-		}
-		else {
-			int mid = (start + end) / 2;
-
-			left = new BvhNode(triangles, start, mid);
-			right = new BvhNode(triangles, mid, end);
-		}
-	}
-
-	int calcIndices() {
-		int index = 0;
-
-		std::queue<BvhNode *> nodes;
-		nodes.push(this);
-
-		while (!nodes.empty()) {
-			BvhNode *node = nodes.front();
-			nodes.pop();
-
-			node->index = index++;
-			if (node->left)
-				nodes.push(node->left);
-			if (node->right)
-				nodes.push(node->right);
-		}
-
-		return index;
-	}
-
-	bestAxis bestSplit(std::vector<GpuTri>& triangles, std::vector<int> indexList) {
-		bestAxis best;
-		float bestCost = std::numeric_limits<float>::max();
-		for (int a = 0; a < 3; ++a) {
-			for (int i = 0; i < triangles.size(); ++i) {
-				GpuTri& tri = triangles[i];
-				glm::vec3 candidatePos(tri.pos0normx + tri.pos1normy + tri.pos2normz);
-				bestAxis b = evaluateSAH(triangles, a, candidatePos[a] / 3.f, indexList);
-				if (b.cost < bestCost) {
-					best = b;
-				}
-			}
-		}
-		return best;
-	}
-
-	bestAxis evaluateSAH(std::vector<GpuTri>& triangles, int axis, int candidatePos, std::vector<int> indexList) {
-		int leftCount = 0;
-		int rightCount = 0;
-		std::vector<GpuTri> rightTris;
-		std::vector<GpuTri> leftTris;
-		std::vector<int> rightIndexList;
-		std::vector<int> leftIndexList;
-		
-		for (int i = 0; i < triangles.size(); ++i) {
-			GpuTri& tri = triangles[i];
-			glm::vec3 baryCenter(tri.pos0normx + tri.pos1normy + tri.pos2normz);
-			int pos = baryCenter[axis] / 3.f;
-			if (pos <= candidatePos) {
-				leftCount++;
-				leftTris.push_back(tri);
-				leftIndexList.push_back(indexList[i]);
-			}
-			else {
-				rightCount++;
-				rightTris.push_back(tri);
-				rightIndexList.push_back(indexList[i]);
-			}
-		}
-		float cost = leftCount * calculateArea(leftTris) + rightCount * calculateArea(rightTris);
-		return {
-			.cost = cost,
-			.leftTris = leftTris,
-			.rightTris = rightTris,
-			.leftIndexList = leftIndexList,
-			.rightIndexList = rightIndexList,
-		};
-	}
-
-	float calculateArea(std::vector<GpuTri> triangles) {
-		if (triangles.size() == 0) {
-			return std::numeric_limits<float>::max();
-		}
-
-		glm::vec3 maxExtent(triangles[0].pos0normx);
-		glm::vec3 minExtent = maxExtent;
-		for (int i = 0; i < triangles.size(); ++i) {
-			GpuTri& tri = triangles[i];
-
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos0normx));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos1normy));
-			minExtent = glm::min(minExtent, glm::vec3(tri.pos2normz));
-
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos0normx));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos1normy));
-			maxExtent = glm::max(maxExtent, glm::vec3(tri.pos2normz));
-		}
-		glm::vec3 diff = maxExtent - minExtent;
-		return diff[0] * diff[1] + diff[1] * diff[2] + diff[0] * diff[2];
-	}
-
-	void convertBvh(std::vector<GpuBvhNode>& nodes) {
-		nodes[index].minExtent = glm::vec4(minExtent, 0.f);
-		nodes[index].maxExtent = glm::vec4(maxExtent, 0.f);
-		if (triIndex != -1) {
-			nodes[index].navigation = glm::uvec4(-1, -1, parentIndex, triIndex);
-		}
-		else {
-			left->parentIndex = index;
-			right->parentIndex = index;
-
-			nodes[index].navigation = glm::ivec4(left->index, right->index, parentIndex, -1);
-
-			left->convertBvh(nodes);
-			right->convertBvh(nodes);
-		}
-	}
-private:
-	glm::vec3 maxExtent;
-	glm::vec3 minExtent;
-
-	int index = -1;
-	int parentIndex = 0;
-	int triIndex = -1;
-	std::vector<int> triIndexList;
-
-	BvhNode* left = nullptr;
-	BvhNode* right = nullptr;
 };
 
 GpuTri toGpuTri(ObjTriangle& tri, int matId) {
@@ -235,6 +46,58 @@ GpuTri toGpuTri(ObjTriangle& tri, int matId) {
 		.uvMatId = glm::uvec4(uv0, uv1, uv2, matId)
 	};
 }
+
+bvh::Triangle<float> toBvhTri(GpuTri& tri) {
+	auto v1 = bvh::Vector3<float>(tri.pos0normx.x, tri.pos0normx.y, tri.pos0normx.z);
+	auto v2 = bvh::Vector3<float>(tri.pos1normy.x, tri.pos1normy.y, tri.pos1normy.z);
+	auto v3 = bvh::Vector3<float>(tri.pos2normz.x, tri.pos2normz.y, tri.pos2normz.z);
+
+	return bvh::Triangle<float>(v1, v2, v3);
+}
+
+bvh::Bvh<float> buildBvh(std::vector<GpuTri>& tris) {
+	std::vector<bvh::Triangle<float>> prims;
+	prims.reserve(tris.size());
+
+	for (GpuTri& tri : tris) {
+		prims.push_back(toBvhTri(tri));
+	}
+	// https://github.com/madmann91/bvh/blob/master/test/simple_example.cpp
+
+	auto [bboxes, centers] = bvh::compute_bounding_boxes_and_centers(prims.data(), prims.size());
+	auto global_bbox = bvh::compute_bounding_boxes_union(bboxes.get(), prims.size());
+
+	bvh::Bvh<float> bvvh;
+
+	bvh::SweepSahBuilder builder(bvvh);
+	builder.build(global_bbox, bboxes.get(), centers.get(), prims.size());
+
+	return bvvh;
+}
+
+void convertForGpu(bvh::Bvh<float>& bvvh, std::vector<GpuTri>& inTris, std::vector<GpuTri>& outTris, std::vector<GpuBvhNode>& outNodes) {
+	outTris.reserve(inTris.size());
+	outNodes.resize(bvvh.node_count);
+	for (int i = 0; i < bvvh.node_count; ++i) {
+		auto& node = bvvh.nodes[i];
+		auto& outNode = outNodes[i];
+		outNode.minExtent = glm::vec4(node.bounds[0], node.bounds[2], node.bounds[4], 0.f);
+		outNode.maxExtent = glm::vec4(node.bounds[1], node.bounds[3], node.bounds[5], 0.f);
+		if (node.is_leaf()) {
+			outNode.navigation = glm::ivec4(-1, -1, outTris.size(), node.primitive_count);
+			for (int i = 0; i < node.primitive_count; ++i) {
+				int triIdx = bvvh.primitive_indices[node.first_child_or_primitive + i];
+				outTris.push_back(inTris[triIdx]);
+			}
+		}
+		else {
+			int leftIdx = node.first_child_or_primitive;
+			int rightIdx = bvh::Bvh<float>::sibling(leftIdx);
+			outNode.navigation = glm::ivec4(leftIdx, rightIdx, 0, 0);
+		}
+	}
+}
+
 export class GpuSceneSystem : public ExtEngineSystem {
 public:
 	GpuSceneSystem() {}
@@ -266,21 +129,17 @@ public:
 		};
 
 		m_triCount = tris.size();
+		
+		auto bvvh = buildBvh(tris);
 
-		std::vector<int> indexes(m_triCount);
-		for (int i = 0; i < m_triCount; i++)
-		{
-			indexes[i] = i;
-		}
+		std::vector<GpuBvhNode> bvhNodes;
+		std::vector<GpuTri> triBuffer;
 
-		//BvhNode bvh(tris, indexes);
-		BvhNode bvh(tris, 0, tris.size());
-		std::vector<GpuBvhNode> bvhNodes(bvh.calcIndices());
-		bvh.convertBvh(bvhNodes);
+		convertForGpu(bvvh, tris, triBuffer, bvhNodes);
 		
 		m_bvhBuffer = new GpuBuffer<GpuBvhNode>(bvhNodes.size());
 		m_bvhBuffer->setData(bvhNodes, 0, 0, bvhNodes.size());
-		m_triBuffer->setData(tris, 0, 0, m_triCount);
+		m_triBuffer->setData(triBuffer, 0, 0, m_triCount);
 		m_matBuffer->setData(mats, 0, 0, mats.size());
 	}
 

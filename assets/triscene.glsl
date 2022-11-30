@@ -22,6 +22,7 @@ struct Material {
 
 struct TriIntersection {
   vec3 pos;
+  vec3 normal;
   vec3 bary;
   float t;
 };
@@ -68,6 +69,8 @@ bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
     return false;
 
   info.pos = ray.pos + ray.dir * t;
+  info.normal = normalize(cross(e1, e2));
+  info.normal *= -sign(dot(info.normal, ray.dir));
   info.bary = vec3(u, v, 1 - u - v);
   info.t = t;
 
