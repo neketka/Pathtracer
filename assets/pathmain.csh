@@ -94,7 +94,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 				nodeIndex = traverseL ? node.navigation.x : node.navigation.y;
 			}
 		}
-	} while(nodeIndex != -1);
+	} while (nodeIndex != -1);
 
 	Triangle tri = triangles[closestTri];
 	Material mat = materials[tri.uvMatId.w];
@@ -123,7 +123,7 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 
 	if (anyHit) {
 		vec3 toLight = lightPos - rayInfo.pos;
-		float lightDistRecip = 1 / length(toLight);
+		float lightDistRecip = 1.0 / length(toLight);
 
 		float lightFactor = max(0.0, dot(rayInfo.normal, toLight * lightDistRecip)) * lightDistRecip * lightDistRecip;
 		vec3 color = rayInfo.color;
@@ -137,6 +137,7 @@ vec3 getDirectRadiance(Ray r, out IntersectionInfo rayInfo) {
 		sr.pos = rayInfo.pos;
 		sr.start = 0.000001;
 		sr.dir = (sampl - sr.pos) / dist;
+		sr.dirInv = 1.0 / sr.dir;
 		sr.end = dist;
 
 		float shadow = float(!traceScene(sr, true, srInfo));
@@ -162,18 +163,23 @@ void main() {
 	vec3 directLight = getDirectRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
+	vec3 curColor = vec3(1.0);
+
 	for (int i = 0; i < bounces; ++i) {
 		if (!rayInfo.anyHit) {
 			break;
 		}
 
+		curColor *= rayInfo.color;
+
 		vec3 curNormal = rayInfo.normal;
-		vec3 curColor = rayInfo.color;
 		float curRoughness = rayInfo.roughness;
 
 		r.start = 0.000001;
+		r.end = 1000000.0;
 		r.pos = rayInfo.pos;
 		r.dir = mix(reflect(r.dir, curNormal), hemisphereVector(curNormal, vec2(random) + r.dir.xy), curRoughness);
+		r.dirInv = 1.0 / r.dir;
 
 		vec3 rad = getDirectRadiance(r, rayInfo);
 		if (rad == vec3(0.0)) {

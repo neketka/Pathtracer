@@ -35,7 +35,7 @@ struct IntersectionInfo {
   bool anyHit;
 };
 
-bool triangleRay(inout Ray ray, Triangle tri, inout TriIntersection info) {
+bool triangleRay(Ray ray, Triangle tri, inout TriIntersection info) {
   const float EPSILON = 0.000001;
 
   vec3 v0 = tri.pos0normx.xyz;

@@ -250,7 +250,7 @@ public:
 
 		for (int i = 0; i < monkeyMeshes.size(); ++i) {
 			for (auto& tri : monkeyMeshes[i]) {
-				//tris.push_back(toGpuTri(tri, 1));
+				tris.push_back(toGpuTri(tri, 1));
 			}
 		}
 
