@@ -7,6 +7,7 @@ module;
 #include <sstream>
 #include <glm/glm.hpp>
 #include "rapidobj.hpp"
+#include <string>
 
 export module assetsystem;
 

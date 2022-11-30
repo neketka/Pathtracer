@@ -1,6 +1,7 @@
 module;
 
 #include <glm/glm.hpp>
+#include <string>
 
 export module pathtracingsystem;
 
