@@ -32,6 +32,8 @@ export struct GpuMat {
 class BvhNode {
 public:
 	BvhNode(std::vector<GpuTri>& triangles, int start, int end) {
+		minExtent = glm::vec3(triangles[start].pos0normx);
+		maxExtent = minExtent;
 		for (int i = start; i < end; ++i) {
 			GpuTri& tri = triangles[i];
 
@@ -121,6 +123,7 @@ public:
 		m_matBuffer = new GpuBuffer<GpuMat>(16);
 
 		auto& cboxMeshes = extEngine.getSystem<AssetSystem>().findModel("cornellbox").meshes;
+		auto& monkeyMeshes = extEngine.getSystem<AssetSystem>().findModel("suzanne").meshes;
 
 		std::vector<GpuTri> tris;
 
@@ -130,12 +133,28 @@ public:
 			}
 		}
 
+		for (int i = 0; i < monkeyMeshes.size(); ++i) {
+			for (auto& tri : monkeyMeshes[i]) {
+				//tris.push_back(toGpuTri(tri, 1));
+			}
+		}
+
 		std::vector<GpuMat> mats = {
 			{ .colorRoughness = glm::vec4(1.f, 1.f, 1.f, 0.f) },
 			{ .colorRoughness = glm::vec4(0.8f, 0.8f, 0.8f, 1.f) }
 		};
 
 		m_triCount = tris.size();
+
+		std::sort(tris.begin(), tris.end(), [](GpuTri& a, GpuTri& b) {
+			auto center1 = glm::vec3(a.pos0normx + a.pos1normy + a.pos2normz) / 3.f;
+			auto center2 = glm::vec3(b.pos0normx + b.pos1normy + b.pos2normz) / 3.f;
+
+			auto d1 = glm::dot(glm::vec3(1, 0, 0), center1);
+			auto d2 = glm::dot(glm::vec3(1, 0, 0), center2);
+
+			return d1 < d2;
+		});
 
 		BvhNode bvh(tris, 0, m_triCount);
 		std::vector<GpuBvhNode> bvhNodes(bvh.calcIndices());
