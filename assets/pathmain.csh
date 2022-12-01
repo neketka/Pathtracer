@@ -3,6 +3,8 @@
 #include "/triscene"
 #include "/specular"
 
+#define M_PI (3.1415926535897932384626433832795)
+
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
@@ -205,10 +207,8 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		vec3 F = schlickFresnel(rayInfo.spec, LdotH);
 
 		vec3 ggxTerm = D*G*F / (4 * NdotV /* * NdotL */);
-		float pi = 3.1415926;
-
 		return color * lightColor * shadow * ( /* NdotL * */ ggxTerm +
-                                           NdotL * lightFactor / pi);
+                                           NdotL * lightFactor / M_PI);
 	}
 
 	return vec3(0);
