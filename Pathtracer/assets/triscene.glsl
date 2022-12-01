@@ -17,7 +17,7 @@ struct Triangle {
 };
 
 struct Material {
-  vec4 colorRoughness;
+  vec4 colorRM;
 };
 
 struct TriIntersection {

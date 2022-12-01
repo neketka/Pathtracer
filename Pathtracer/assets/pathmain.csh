@@ -112,15 +112,17 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	Material mat = materials[tri.uvMatId.w];
 
 	if (anyHit) {
+		vec2 rm = unpackHalf2x16(floatBitsToUint(mat.colorRM.w));
+
 		closest.t = closestInfo.t;
 		closest.pos = closestInfo.pos;
 		closest.normal = closestInfo.normal;
-		closest.color = mat.colorRoughness.xyz;
-		closest.roughness = 0.4;
+		closest.color = mat.colorRM.xyz;
+		closest.roughness = rm.x;
 		closest.triIndex = closestTri;
 		closest.anyHit = true;
 		closest.bary = closestInfo.bary;
-		closest.metalness = 0.0;
+		closest.metalness = rm.y;
 	}
 
 	return anyHit;
@@ -172,7 +174,7 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * lightFactor;
 	}
 
-	return vec3(0);
+	return vec3(0.5294, 0.8078, 0.9216);
 }
 
 void main() {

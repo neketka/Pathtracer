@@ -30,7 +30,7 @@ export struct GpuBvhNode {
 };
 
 export struct GpuMat {
-	glm::vec4 colorRoughness;
+	glm::vec4 colorRM;
 };
 
 GpuTri toGpuTri(ObjTriangle& tri, int matId) {
@@ -113,19 +113,19 @@ public:
 
 		for (int i = 0; i < monkeyMeshes.size(); ++i) {
 			for (auto& tri : monkeyMeshes[i]) {
-				tris.push_back(toGpuTri(tri, 1));
+				tris.push_back(toGpuTri(tri, 0));
 			}
 		}
 
 		for (int i = 0; i < cboxMeshes.size(); ++i) {
 			for (auto& tri : cboxMeshes[i]) {
-				tris.push_back(toGpuTri(tri, i < 6 ? 1 : 0));
+				tris.push_back(toGpuTri(tri, 1));
 			}
 		}
 
 		std::vector<GpuMat> mats = {
-			{ .colorRoughness = glm::vec4(1.f, 1.f, 1.f, 0.f) },
-			{ .colorRoughness = glm::vec4(0.8f, 0.8f, 0.8f, 1.f) }
+			{ .colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) },
+			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 0.0)))) }
 		};
 
 		m_triCount = tris.size();
