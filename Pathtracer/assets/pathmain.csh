@@ -135,6 +135,20 @@ vec3 getRayDir() {
 	return (viewBasis * vec4(factor * 2.0 - vec2(1.0), 1.0, 0.0)).xyz;
 }
 
+vec3 getGgx(Ray r, vec3 toLight, float NdotL, IntersectionInfo rayInfo) {
+	vec3 V = -r.dir;
+	vec3 H = normalize(V + toLight);
+	float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
+	float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
+	float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
+
+	float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
+	float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
+	vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
+
+	return D*G*F / (4 * NdotV);
+}
+
 vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, false, rayInfo);
 
@@ -159,18 +173,8 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		sr.end = dist;
 
 		float shadow = float(!traceScene(sr, true, srInfo));
-		
-		vec3 V = -r.dir;
-		vec3 H = normalize(V + toLight);
-		float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
-		float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
-		float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
+		vec3 ggxTerm = getGgx(r, toLight, NdotL, rayInfo);
 
-		float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
-		float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
-		vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
-
-		vec3 ggxTerm = D*G*F / (4 * NdotV);
 		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * lightFactor;
 	}
 
@@ -193,6 +197,8 @@ void main() {
 	vec3 indirectLight = vec3(0.0);
 
 	vec3 curColor = vec3(1.0);
+
+	bool specularRay = random > 0.5;
 
 	for (int i = 0; i < bounces; ++i) {
 		if (!rayInfo.anyHit) {
