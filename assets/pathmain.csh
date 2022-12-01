@@ -7,7 +7,6 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
 layout(rgba32f, binding = 1) uniform image2D irrCache;
-layout(rg32f, binding = 2) uniform image2D occCache;
 
 layout(location = 0) uniform mat4 viewBasis = mat4(1.0);
 layout(location = 1) uniform int samples;
@@ -32,7 +31,7 @@ layout(std140, binding = 0) uniform Materials {
 
 ivec2 getCacheCoord(int triIndex, vec3 bary) {
 	int side = 8192; // Width/height of cache
-	int res = 64; // Pixels per triangle
+	int res = 128; // Pixels per triangle
 
 	int perRow = (side / res) * 2;
 
@@ -48,6 +47,24 @@ ivec2 getCacheCoord(int triIndex, vec3 bary) {
 	vec2 coord = (bary.x * tl + bary.y * br + bary.z * last + vec2(col, row)) * res;
 
 	return ivec2(coord);
+}
+
+bool readIrrCache(ivec2 cacheCoord, out vec3 irradiance) {
+	vec2 sampl = imageLoad(occCache, cacheCoord);
+	vec2 samplL = imageLoad(occCache, cacheCoord + ivec2(-1, 0));
+	vec2 samplR = imageLoad(occCache, cacheCoord + ivec2(1, 0));
+	vec2 samplT = imageLoad(occCache, cacheCoord + ivec2(0, 1));
+	vec2 samplB = imageLoad(occCache, cacheCoord + ivec2(0, -1));
+
+	float samples = sampl.w + samplL.w + samplR.w + samplT.w + samplB.w;
+
+	irradiance = sampl.
+
+	return sampl.w < 500;
+}
+
+void writeIrrCache() {
+
 }
 
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
@@ -77,7 +94,8 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 
 		if (leftInter != -1 && left.navigation.w > 0) {
 			for (int i = 0; i < left.navigation.w; ++i) {
-				tri = triangles[left.navigation.z + i];
+				int triIndex = left.navigation.z + i;
+				tri = triangles[triIndex];
 
 				bool hit = triangleRay(r, tri, closestInfo);
 				if (anyReturn && hit) {
@@ -92,14 +110,15 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 
 		if (rightInter != -1 && right.navigation.w > 0) {
 			for (int i = 0; i < right.navigation.w; ++i) {
-				tri = triangles[right.navigation.z + i];
+				int triIndex = right.navigation.z + i;
+				tri = triangles[triIndex];
 
 				bool hit = triangleRay(r, tri, closestInfo);
 				if (anyReturn && hit) {
 					return true;
 				} else if (hit) {
 					r.end = closestInfo.t;
-					closestTri = right.navigation.w;
+					closestTri = triIndex;
 					anyHit = true;
 				}
 			}
@@ -149,7 +168,7 @@ vec3 getRayDir() {
 	return (viewBasis * vec4(factor * 2.0 - vec2(1.0), 1.0, 0.0)).xyz;
 }
 
-vec3 getRadiance(Ray r, bool direct, out IntersectionInfo rayInfo) {
+vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 	bool anyHit = traceScene(r, false, rayInfo);
 
 	if (anyHit) {
@@ -174,16 +193,6 @@ vec3 getRadiance(Ray r, bool direct, out IntersectionInfo rayInfo) {
 
 		float shadow = float(!traceScene(sr, true, srInfo));
 
-		if (direct) {
-			ivec2 cacheCoord = getCacheCoord(rayInfo.triIndex, rayInfo.bary);
-
-			vec2 occSample = imageLoad(occCache, cacheCoord).xy;
-			float newOcc = (occSample.x * occSample.y + shadow) / (occSample.y + 1);
-			vec4 newOccSample = vec4(newOcc, occSample.y + 1, 0.0, 0.0);
-
-			imageStore(occCache, cacheCoord, newOccSample);
-		}
-
 		return color * lightColor * lightFactor * shadow;
 	}
 
@@ -202,8 +211,10 @@ void main() {
 
 	IntersectionInfo rayInfo;
 
-	vec3 directLight = getRadiance(r, true, rayInfo);
+	vec3 directLight = getRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
+
+	ivec2 cacheCoord = getCacheCoord(rayInfo.triIndex, rayInfo.bary);
 
 	vec3 curColor = vec3(1.0);
 
@@ -220,10 +231,10 @@ void main() {
 		r.start = 0.000001;
 		r.end = 1000000.0;
 		r.pos = rayInfo.pos;
-		r.dir = mix(reflect(r.dir, curNormal), hemisphereVector(curNormal, vec2(random) + r.dir.xy), curRoughness);
+		r.dir = hemisphereVector(curNormal, vec2(random) + r.dir.xy);
 		r.dirInv = 1.0 / r.dir;
 
-		vec3 rad = getRadiance(r, false, rayInfo);
+		vec3 rad = getRadiance(r, rayInfo);
 		if (rad == vec3(0.0)) {
 			break;
 		}

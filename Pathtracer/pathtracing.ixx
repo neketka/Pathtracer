@@ -32,9 +32,7 @@ public:
 		m_color = new GpuTexture<glm::vec4>(w, h, false);
 		m_depth = new GpuTexture<float>(w, h, true);
 		m_irrCache = new GpuTexture<glm::vec4>(8192, 8192, false);
-		m_occCache = new GpuTexture<glm::vec2>(8192, 8192, false);
 		m_irrCache->clear();
-		m_occCache->clear();
 		m_w = w;
 		m_h = h;
 		m_aspect = m_w / static_cast<float>(m_h);
@@ -55,11 +53,6 @@ public:
 		return m_irrCache;
 	}
 
-	GpuTexture<glm::vec2>* getOccCache() {
-		assert(m_occCache);
-		return m_occCache;
-	}
-
 	int w() {
 		return m_w;
 	}
@@ -77,7 +70,6 @@ private:
 	GpuTexture<glm::vec4>* m_color = nullptr;
 	GpuTexture<float>* m_depth = nullptr;
 	GpuTexture<glm::vec4>* m_irrCache = nullptr;
-	GpuTexture<glm::vec2>* m_occCache = nullptr;
 };
 
 export class PathtracingConfig {
@@ -114,7 +106,6 @@ public:
 				GpuProgramState()
 					.image(0, target->getColor())
 					.image(1, target->getIrrCache())
-					.image(2, target->getOccCache())
 					.uniform(0, mvp)
 					.uniform(1, m_config.progressive ? m_samples++ : 0)
 					.uniform(2, m_config.progressive ? m_dist(m_gen) : 0)
