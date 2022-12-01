@@ -116,11 +116,11 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		closest.pos = closestInfo.pos;
 		closest.normal = closestInfo.normal;
 		closest.color = mat.colorRoughness.xyz;
-		closest.roughness = mat.colorRoughness.w;
+		closest.roughness = 0.5;
 		closest.triIndex = closestTri;
 		closest.anyHit = true;
 		closest.bary = closestInfo.bary;
-		closest.spec = vec3(1.0);
+		closest.metalness = 0.0;
 	}
 
 	return anyHit;
@@ -140,8 +140,8 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		vec3 toLight = lightPos - rayInfo.pos;
 		float lightDistRecip = 1.0 / length(toLight);
 
-		float lightFactor = 
-			max(0.0, dot(rayInfo.normal, toLight * lightDistRecip)) * lightDistRecip * lightDistRecip;
+		float NdotL = max(0.0, dot(rayInfo.normal, toLight * lightDistRecip));
+		float lightFactor = NdotL * lightDistRecip * lightDistRecip;
 		vec3 color = rayInfo.color;
 		IntersectionInfo srInfo;
 
@@ -158,19 +158,18 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 
 		float shadow = float(!traceScene(sr, true, srInfo));
 		
-		vec3 V = -ray.dir;
-		vec3 H = normalize(V + toLight)
+		vec3 V = -r.dir;
+		vec3 H = normalize(V + toLight);
 		float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
 		float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
 		float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
 
-		float  D = ggxNormalDistribution(NdotH, rayInfo.roughness);
-		float  G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
-		vec3 F = schlickFresnel(rayInfo.spec, LdotH);
+		float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
+		float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
+		vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
 
-		vec3 ggxTerm = D*G*F / (4 * NdotV /* * NdotL */);
-		return color * lightColor * shadow * ( /* NdotL * */ ggxTerm +
-                                           NdotL * lightFactor / M_PI);
+		vec3 ggxTerm = D*G*F / (4 * NdotV);
+		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * lightFactor;
 	}
 
 	return vec3(0);

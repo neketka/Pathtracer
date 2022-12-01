@@ -3,6 +3,8 @@
 #include "/triscene"
 #include "/specular"
 
+#define M_PI (3.1415926535897932384626433832795)
+
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D target;
@@ -28,56 +30,6 @@ layout(std430, binding = 1) buffer BvhNodes {
 layout(std140, binding = 0) uniform Materials {
 	Material materials[64];
 };
-
-ivec2 getCacheCoord(int triIndex, vec3 bary) {
-	int side = 8192; // Width/height of cache
-	int res = 8; // Pixels per triangle
-
-	int perRow = (side / res) * 2;
-
-	int row = triIndex / perRow;
-	int col = triIndex - row * perRow;
-
-	int handedness = int(mod(triIndex, 2));
-
-	vec2 tl = vec2(0.0, 1.0);
-	vec2 br = vec2(1.0, 0.0);
-	vec2 last = vec2(handedness, handedness);
-
-	vec2 coord = (bary.x * tl + bary.y * br + bary.z * last + vec2(col, row)) * res;
-
-	return ivec2(coord);
-}
-
-bool isCacheMiss(ivec2 cacheCoord) {
-	return imageLoad(irrCache, cacheCoord).w < 500;
-}
-
-vec3 useIrrCache(ivec2 cacheCoord, vec3 newSample) {
-	vec4 sampl = imageLoad(irrCache, cacheCoord);
-	vec4 samplL = imageLoad(irrCache, cacheCoord + ivec2(-1, 0));
-	vec4 samplR = imageLoad(irrCache, cacheCoord + ivec2(1, 0));
-	vec4 samplT = imageLoad(irrCache, cacheCoord + ivec2(0, 1));
-	vec4 samplB = imageLoad(irrCache, cacheCoord + ivec2(0, -1));
-
-	vec4 newValue;
-
-	if (sampl.w < 500) {
-		newValue = vec4((sampl.xyz * sampl.w + newSample) / (sampl.w + 1), sampl.w + 1);
-		imageStore(irrCache, cacheCoord, newValue);
-	} else {
-		newValue = sampl;
-	}
-
-	float totSamples = sampl.w + samplL.w + samplR.w + samplT.w + samplB.w;
-
-	return (
-		newValue.xyz * newValue.w + 
-		samplL.xyz * samplL.w + 
-		samplR.xyz * samplR.w + 
-		samplT.xyz * samplT.w + 
-		samplB.xyz * samplB.w) / totSamples;
-}
 
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	bool anyHit = false;
@@ -164,11 +116,11 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		closest.pos = closestInfo.pos;
 		closest.normal = closestInfo.normal;
 		closest.color = mat.colorRoughness.xyz;
-		closest.roughness = mat.colorRoughness.w;
+		closest.roughness = 0.4;
 		closest.triIndex = closestTri;
 		closest.anyHit = true;
 		closest.bary = closestInfo.bary;
-		closest.spec = vec3(1.0);
+		closest.metalness = 0.0;
 	}
 
 	return anyHit;
@@ -188,8 +140,8 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		vec3 toLight = lightPos - rayInfo.pos;
 		float lightDistRecip = 1.0 / length(toLight);
 
-		float lightFactor = 
-			max(0.0, dot(rayInfo.normal, toLight * lightDistRecip)) * lightDistRecip * lightDistRecip;
+		float NdotL = max(0.0, dot(rayInfo.normal, toLight * lightDistRecip));
+		float lightFactor = NdotL * lightDistRecip * lightDistRecip;
 		vec3 color = rayInfo.color;
 		IntersectionInfo srInfo;
 
@@ -206,21 +158,18 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 
 		float shadow = float(!traceScene(sr, true, srInfo));
 		
-		vec3 V = -ray.dir;
-		vec3 H = normalize(V + toLight)
+		vec3 V = -r.dir;
+		vec3 H = normalize(V + toLight);
 		float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
 		float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
 		float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
 
-		float  D = ggxNormalDistribution(NdotH, rayInfo.roughness);
-		float  G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
-		vec3 F = schlickFresnel(rayInfo.spec, LdotH);
+		float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
+		float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
+		vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
 
-		vec3 ggxTerm = D*G*F / (4 * NdotV /* * NdotL */);
-		float pi = 3.1415926;
-
-		return color * lightColor * shadow * ( /* NdotL * */ ggxTerm +
-                                           NdotL * lightFactor / pi);
+		vec3 ggxTerm = D*G*F / (4 * NdotV);
+		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * lightFactor;
 	}
 
 	return vec3(0);
@@ -241,12 +190,9 @@ void main() {
 	vec3 directLight = getRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
-	ivec2 cacheCoord = getCacheCoord(rayInfo.triIndex, rayInfo.bary);
-	bool miss = isCacheMiss(cacheCoord);
-
 	vec3 curColor = vec3(1.0);
 
-	for (int i = 0; i < bounces && miss; ++i) {
+	for (int i = 0; i < bounces; ++i) {
 		if (!rayInfo.anyHit) {
 			break;
 		}
@@ -270,8 +216,6 @@ void main() {
 		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos))));
 		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 	}
-
-	indirectLight = useIrrCache(cacheCoord, indirectLight);
 
 	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));
 	vec4 color = imageLoad(target, pos);

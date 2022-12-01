@@ -32,7 +32,7 @@ struct IntersectionInfo {
   vec3 normal;
   vec3 color;
   vec3 bary;
-  vec3 spec;
+  float metalness;
   float roughness;
   float t;
   int triIndex;

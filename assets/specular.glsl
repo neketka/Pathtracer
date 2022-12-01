@@ -8,7 +8,7 @@ float ggxNormalDistribution( float NdotH, float roughness )
 	return a2 / (d * d * M_PI);
 }
 
-float schlickMaskingTerm(float NdotL, float NdotV, float roughness)
+float ggxSchlickMaskingTerm(float NdotL, float NdotV, float roughness)
 {
 	// Karis notes they use alpha / 2 (or roughness^2 / 2)
 	float k = roughness*roughness / 2;
