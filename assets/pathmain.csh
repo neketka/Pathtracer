@@ -221,8 +221,45 @@ void main() {
 			break;
 		}
 
-		float lightFactor = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
-		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
+		if (!specularRay)
+		{
+			float lightFactor = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
+			indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
+		} else {
+			// Randomly sample the NDF to get a microfacet in our BRDF 
+			float3 H = getGGXMicrofacet(randVal, rough, N);
+
+			vec3 V = -r.dir;
+
+			// Compute outgoing direction based on this (perfectly reflective) facet
+			float3 L = normalize(2.f * dot(V, H) * H - V);
+			r.dir = L;
+			r.dirInv = 1/L;
+
+			// Compute our color by tracing a ray in this direction
+			float3 bounceColor = getRadiance(r, rayInfo);
+
+			vec3 toLight = normalize(lightPos - rayInfo.pos);     
+
+			vec3 V = -r.dir;
+			vec3 H = normalize(V + toLight);
+			float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
+			float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
+			float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
+
+			float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
+			float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
+			vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
+
+	    vec3 ggxTerm = D*G*F / (4 * NdotV);
+
+			// What's the probability of sampling vector H from getGGXMicrofacet()?
+			float ggxProb = D * NdotH / (4 * LdotH);
+
+			// Accumulate color:  ggx-BRDF * lightIn * NdotL / probability-of-sampling
+			//    -> Note: Should really cancel and simplify the math above
+			indirect += NdotL * bounceColor * ggxTerm / (ggxProb * (1.0f - specularRay));
+		}
 	}
 
 	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));
