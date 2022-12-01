@@ -25,16 +25,24 @@ vec3 schlickFresnel(vec3 f0, float lDotH)
 	return f0 + (vec3(1.0f, 1.0f, 1.0f) - f0) * pow(1.0f - lDotH, 5.0f);
 }
 
+vec3 getPerpendicularVector(vec3 u)
+{
+	vec3 a = abs(u);
+	uint xm = ((a.x - a.y)<0 && (a.x - a.z)<0) ? 1 : 0;
+	uint ym = (a.y - a.z)<0 ? (1 ^ xm) : 0;
+	uint zm = 1 ^ (xm | ym);
+	return cross(u, vec3(xm, ym, zm));
+}
+
 // When using this function to sample, the probability density is:
 //      pdf = D * NdotH / (4 * HdotV)
-vec3 getGGXMicrofacet(inout vec2 randVal, float roughness, vec3 hitNorm)
+vec3 getGGXMicrofacet(vec2 randVal, float roughness, vec3 hitNorm)
 {
 	// Get our uniform random numbers
 
 	// Get an orthonormal basis from the normal
-  vec3 B = hitNorm.yxz
+  vec3 B = getPerpendicularVector(hitNorm);
 	vec3 T = cross(B, hitNorm);
-  
 
 	// GGX NDF sampling
 	float a2 = roughness * roughness;

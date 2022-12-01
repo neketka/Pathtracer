@@ -135,18 +135,19 @@ vec3 getRayDir() {
 	return (viewBasis * vec4(factor * 2.0 - vec2(1.0), 1.0, 0.0)).xyz;
 }
 
-vec3 getGgx(Ray r, vec3 toLight, float NdotL, IntersectionInfo rayInfo) {
+vec3 getGgx(Ray r, vec3 L, float NdotL, IntersectionInfo rayInfo) {
 	vec3 V = -r.dir;
-	vec3 H = normalize(V + toLight);
+	vec3 H = normalize(L + V);
+
 	float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
-	float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
+	float LdotH = clamp(dot(L, H), 0.0, 1.0);
 	float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
 
 	float D = ggxNormalDistribution(NdotH, rayInfo.roughness);
 	float G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
 	vec3 F = schlickFresnel(mix(vec3(0.04), rayInfo.color, rayInfo.metalness), LdotH);
 
-	return D*G*F / (4 * NdotV);
+	return D * G * F / (4.0 * NdotV);
 }
 
 vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
@@ -155,9 +156,10 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 	if (anyHit) {
 		vec3 toLight = lightPos - rayInfo.pos;
 		float lightDistRecip = 1.0 / length(toLight);
+		vec3 L = toLight * lightDistRecip;
 
-		float NdotL = max(0.0, dot(rayInfo.normal, toLight * lightDistRecip));
-		float lightFactor = NdotL * lightDistRecip * lightDistRecip;
+		float NdotL = max(0.0, dot(rayInfo.normal, L));
+		float lightFactor = NdotL;
 		vec3 color = rayInfo.color;
 		IntersectionInfo srInfo;
 
@@ -173,9 +175,9 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		sr.end = dist;
 
 		float shadow = float(!traceScene(sr, true, srInfo));
-		vec3 ggxTerm = getGgx(r, toLight, NdotL, rayInfo);
+		vec3 ggxTerm = getGgx(r, L, NdotL, rayInfo);
 
-		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * lightFactor;
+		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * NdotL * lightDistRecip * lightDistRecip;
 	}
 
 	return vec3(0.5294, 0.8078, 0.9216);
@@ -198,7 +200,7 @@ void main() {
 
 	vec3 curColor = vec3(1.0);
 
-	bool specularRay = random > 0.5;
+	bool diffuseRay = random > 0.5;
 
 	for (int i = 0; i < bounces; ++i) {
 		if (!rayInfo.anyHit) {
@@ -209,20 +211,52 @@ void main() {
 
 		vec3 curNormal = rayInfo.normal;
 		float curRoughness = rayInfo.roughness;
+		float curMetalness = rayInfo.metalness;
 
 		r.start = 0.000001;
 		r.end = 1000000.0;
 		r.pos = rayInfo.pos;
-		r.dir = hemisphereVector(curNormal, vec2(random) + r.dir.xy);
-		r.dirInv = 1.0 / r.dir;
 
-		vec3 rad = getRadiance(r, rayInfo);
-		if (rad == vec3(0.0)) {
-			break;
+		if (true) {
+			float NdotL = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
+			vec3 rad = getRadiance(r, rayInfo);
+			r.dir = hemisphereVector(curNormal, vec2(random) + r.dir.xy);
+			r.dirInv = 1.0 / r.dir;
+			
+			indirectLight += rad * curColor * NdotL / 0.5;
+		} else {
+			// Randomly sample the NDF to get a microfacet in our BRDF 
+			vec3 H = normalize(getGGXMicrofacet(vec2(random, 1 - random), rayInfo.roughness, curNormal));
+
+			vec3 V = -r.dir;
+  
+			// Compute outgoing direction based on this (perfectly reflective) facet
+			vec3 L = normalize(2.0 * dot(V, H) * H - V);
+			r.dir = L;
+			r.dirInv = 1/L;
+
+			float NdotL = clamp(dot(curNormal, L), 0.0, 1.0);
+			float NdotH = clamp(dot(curNormal, H), 0.0, 1.0);
+			float LdotH = clamp(dot(L, H), 0.0, 1.0);
+			float NdotV = clamp(dot(curNormal, V), 0.0, 1.0);
+			float HdotV = clamp(dot(H, V), 0.0, 1.0);
+
+			// Compute our color by tracing a ray in this direction
+			vec3 bounceColor = getRadiance(r, rayInfo);
+
+			float D = ggxNormalDistribution(NdotH, curRoughness);
+			float G = ggxSchlickMaskingTerm(NdotL, NdotV, curRoughness);
+			vec3 F = schlickFresnel(mix(vec3(0.04), curColor, curMetalness), LdotH);
+
+	    vec3 ggxTerm = D*G*F / (4 * NdotV * NdotL);
+
+			// What's the probability of sampling vector H from getGGXMicrofacet()?
+			float ggxProb = D * NdotH / (4 * HdotV);
+
+			// Accumulate color:  ggx-BRDF * lightIn * NdotL / probability-of-sampling
+			//    -> Note: Should really cancel and simplify the math above
+			indirectLight += NdotL * curColor * bounceColor * ggxTerm / (ggxProb * 0.5);
 		}
-
-		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos))));
-		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 	}
 
 	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));

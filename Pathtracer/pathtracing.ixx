@@ -113,7 +113,7 @@ public:
 					.uniform(4, m_samples == 1 ? glm::min(1, m_config.bounces) : m_config.bounces)
 					.uniform(5, m_config.lightRadius)
 					.uniform(6, glm::vec3(0.f, 1.5f, 0.f))
-					.uniform(7, glm::vec3(2.f, 2.f, 2.f))
+					.uniform(7, glm::vec3(5.f, 5.f, 5.f))
 					.storageBuffer(0, gpuTris)
 					.storageBuffer(1, gpuBvh)
 					.uniformBuffer(0, gpuMats)

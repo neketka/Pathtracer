@@ -124,8 +124,8 @@ public:
 		}
 
 		std::vector<GpuMat> mats = {
-			{ .colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) },
-			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 0.0)))) }
+			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.0, 0.0)))) },
+			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) }
 		};
 
 		m_triCount = tris.size();
