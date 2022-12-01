@@ -31,6 +31,11 @@ public:
 		glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 
+	void clear() {
+		glm::vec4 v(0, 0, 0, 0);
+		glClearTexImage(m_id, 0, GlTextureFormat<T>::baseFormat, GlTextureFormat<T>::type, &v);
+	}
+
 	int width() {
 		return m_w;
 	}
