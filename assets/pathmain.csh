@@ -221,7 +221,7 @@ void main() {
 			break;
 		}
 
-		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos))));
+		float lightFactor = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
 		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 	}
 
