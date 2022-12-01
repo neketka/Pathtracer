@@ -31,7 +31,7 @@ layout(std140, binding = 0) uniform Materials {
 
 ivec2 getCacheCoord(int triIndex, vec3 bary) {
 	int side = 8192; // Width/height of cache
-	int res = 128; // Pixels per triangle
+	int res = 8; // Pixels per triangle
 
 	int perRow = (side / res) * 2;
 
@@ -47,6 +47,36 @@ ivec2 getCacheCoord(int triIndex, vec3 bary) {
 	vec2 coord = (bary.x * tl + bary.y * br + bary.z * last + vec2(col, row)) * res;
 
 	return ivec2(coord);
+}
+
+bool isCacheMiss(ivec2 cacheCoord) {
+	return imageLoad(irrCache, cacheCoord).w < 500;
+}
+
+vec3 useIrrCache(ivec2 cacheCoord, vec3 newSample) {
+	vec4 sampl = imageLoad(irrCache, cacheCoord);
+	vec4 samplL = imageLoad(irrCache, cacheCoord + ivec2(-1, 0));
+	vec4 samplR = imageLoad(irrCache, cacheCoord + ivec2(1, 0));
+	vec4 samplT = imageLoad(irrCache, cacheCoord + ivec2(0, 1));
+	vec4 samplB = imageLoad(irrCache, cacheCoord + ivec2(0, -1));
+
+	vec4 newValue;
+
+	if (sampl.w < 500) {
+		newValue = vec4((sampl.xyz * sampl.w + newSample) / (sampl.w + 1), sampl.w + 1);
+		imageStore(irrCache, cacheCoord, newValue);
+	} else {
+		newValue = sampl;
+	}
+
+	float totSamples = sampl.w + samplL.w + samplR.w + samplT.w + samplB.w;
+
+	return (
+		newValue.xyz * newValue.w + 
+		samplL.xyz * samplL.w + 
+		samplR.xyz * samplR.w + 
+		samplT.xyz * samplT.w + 
+		samplB.xyz * samplB.w) / totSamples;
 }
 
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
@@ -196,9 +226,12 @@ void main() {
 	vec3 directLight = getRadiance(r, rayInfo);
 	vec3 indirectLight = vec3(0.0);
 
+	ivec2 cacheCoord = getCacheCoord(rayInfo.triIndex, rayInfo.bary);
+	bool miss = isCacheMiss(cacheCoord);
+
 	vec3 curColor = vec3(1.0);
 
-	for (int i = 0; i < bounces; ++i) {
+	for (int i = 0; i < bounces && miss; ++i) {
 		if (!rayInfo.anyHit) {
 			break;
 		}
@@ -222,6 +255,8 @@ void main() {
 		float lightFactor = max(0.0, abs(dot(curNormal, normalize(rayInfo.pos - r.pos))));
 		indirectLight += rad * curColor * mix(1.0, lightFactor, curRoughness);
 	}
+
+	indirectLight = useIrrCache(cacheCoord, indirectLight);
 
 	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));
 	vec4 color = imageLoad(target, pos);
