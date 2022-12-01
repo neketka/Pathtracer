@@ -168,6 +168,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		closest.triIndex = closestTri;
 		closest.anyHit = true;
 		closest.bary = closestInfo.bary;
+		closest.spec = vec3(1.0);
 	}
 
 	return anyHit;
@@ -204,8 +205,22 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		sr.end = dist;
 
 		float shadow = float(!traceScene(sr, true, srInfo));
+		
+		vec3 V = -ray.dir;
+		vec3 H = normalize(V + toLight)
+		float NdotH = clamp(dot(rayInfo.normal, H), 0.0, 1.0);
+		float LdotH = clamp(dot(toLight, H), 0.0, 1.0);
+		float NdotV = clamp(dot(rayInfo.normal, V), 0.0, 1.0);
 
-		return color * lightColor * lightFactor * shadow;
+		float  D = ggxNormalDistribution(NdotH, rayInfo.roughness);
+		float  G = ggxSchlickMaskingTerm(NdotL, NdotV, rayInfo.roughness);
+		vec3 F = schlickFresnel(rayInfo.spec, LdotH);
+
+		vec3 ggxTerm = D*G*F / (4 * NdotV /* * NdotL */);
+		float pi = 3.1415926;
+
+		return color * lightColor * shadow * ( /* NdotL * */ ggxTerm +
+                                           NdotL * lightFactor / pi);
 	}
 
 	return vec3(0);
