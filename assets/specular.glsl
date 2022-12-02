@@ -17,7 +17,7 @@ float ggxSchlickMaskingTerm(float NdotL, float NdotV, float roughness)
 	//     (Though note, Schlick's notation is cryptic and confusing.)
 	float g_v = NdotV / (NdotV*(1 - k) + k);
 	float g_l = NdotL / (NdotL*(1 - k) + k);
-	return g_v * g_l;
+	return clamp(g_v * g_l, 0.0, 1.0);
 }
 
 vec3 schlickFresnel(vec3 f0, float lDotH)

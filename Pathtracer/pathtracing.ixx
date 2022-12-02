@@ -31,8 +31,6 @@ public:
 
 		m_color = new GpuTexture<glm::vec4>(w, h, false);
 		m_depth = new GpuTexture<float>(w, h, true);
-		m_irrCache = new GpuTexture<glm::vec4>(8192, 8192, false);
-		m_irrCache->clear();
 		m_w = w;
 		m_h = h;
 		m_aspect = m_w / static_cast<float>(m_h);
@@ -46,11 +44,6 @@ public:
 	GpuTexture<float>* getDepth() {
 		assert(m_depth);
 		return m_depth;
-	}
-
-	GpuTexture<glm::vec4>* getIrrCache() {
-		assert(m_irrCache);
-		return m_irrCache;
 	}
 
 	int w() {
@@ -69,7 +62,6 @@ private:
 	float m_aspect;
 	GpuTexture<glm::vec4>* m_color = nullptr;
 	GpuTexture<float>* m_depth = nullptr;
-	GpuTexture<glm::vec4>* m_irrCache = nullptr;
 };
 
 export class PathtracingConfig {
@@ -105,15 +97,14 @@ public:
 			std::forward<GpuProgramState>(
 				GpuProgramState()
 					.image(0, target->getColor())
-					.image(1, target->getIrrCache())
 					.uniform(0, mvp)
 					.uniform(1, m_config.progressive ? m_samples++ : 0)
 					.uniform(2, m_config.progressive ? m_dist(m_gen) : 0)
 					.uniform(3, m_config.jitter)
 					.uniform(4, m_samples == 1 ? glm::min(1, m_config.bounces) : m_config.bounces)
 					.uniform(5, m_config.lightRadius)
-					.uniform(6, glm::vec3(0.f, 1.5f, 0.f))
-					.uniform(7, glm::vec3(5.f, 5.f, 5.f))
+					.uniform(6, glm::vec3(0.f, 3.f, 0.f))
+					.uniform(7, glm::vec3(1.f, 1.f, 1.f) * 10.f)
 					.storageBuffer(0, gpuTris)
 					.storageBuffer(1, gpuBvh)
 					.uniformBuffer(0, gpuMats)

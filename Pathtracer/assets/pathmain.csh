@@ -66,7 +66,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 					return true;
 				} else if (hit) {
 					r.end = closestInfo.t;
-					closestTri = left.navigation.w;
+					closestTri = triIndex;
 					anyHit = true;
 				}
 			}
@@ -177,7 +177,7 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		float shadow = float(!traceScene(sr, true, srInfo));
 		vec3 ggxTerm = getGgx(r, L, NdotL, rayInfo);
 
-		return color * lightColor * shadow * (ggxTerm + rayInfo.color) * NdotL * lightDistRecip * lightDistRecip;
+		return color * lightColor * shadow * (rayInfo.color + ggxTerm) * NdotL * lightDistRecip * lightDistRecip;
 	}
 
 	return vec3(0.5294, 0.8078, 0.9216);
@@ -217,16 +217,18 @@ void main() {
 		r.end = 1000000.0;
 		r.pos = rayInfo.pos;
 
-		if (true) {
+		vec2 randVal = vec2(rand(vec2(random) + r.dir.xy), rand(vec2(random) + r.dir.yz));
+
+		if (diffuseRay) {
 			float NdotL = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
 			vec3 rad = getRadiance(r, rayInfo);
-			r.dir = hemisphereVector(curNormal, vec2(random) + r.dir.xy);
+			r.dir = hemisphereVector(curNormal, randVal);
 			r.dirInv = 1.0 / r.dir;
 			
 			indirectLight += rad * curColor * NdotL / 0.5;
 		} else {
 			// Randomly sample the NDF to get a microfacet in our BRDF 
-			vec3 H = normalize(getGGXMicrofacet(vec2(random, 1 - random), rayInfo.roughness, curNormal));
+			vec3 H = normalize(getGGXMicrofacet(randVal, rayInfo.roughness, curNormal));
 
 			vec3 V = -r.dir;
   
@@ -255,11 +257,11 @@ void main() {
 
 			// Accumulate color:  ggx-BRDF * lightIn * NdotL / probability-of-sampling
 			//    -> Note: Should really cancel and simplify the math above
-			indirectLight += NdotL * curColor * bounceColor * ggxTerm / (ggxProb * 0.5);
+			indirectLight += max(vec3(0.0), NdotL * curColor * bounceColor * ggxTerm / (ggxProb * 0.5));
 		}
 	}
 
-	vec3 pixel = clamp(directLight + indirectLight, vec3(0.0), vec3(1.0));
+	vec3 pixel = directLight + indirectLight;
 	vec4 color = imageLoad(target, pos);
 	imageStore(target, pos, (color * samples + vec4(pixel, 1.0)) / (samples + 1));
 }

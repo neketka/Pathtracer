@@ -6,7 +6,7 @@ float rand(vec2 co) {
 }
 
 vec3 sampleSphere(vec3 center, float radius, vec2 rnd) {
-  vec2 rng = vec2(rand(rnd), rand(rnd.yx));
+  vec2 rng = vec2(rand(rnd.xy), rand(rnd.yx));
 
   float th = 2 * 3.14159265 * rng.x;
   float phi = acos(1.0 - 2.0 * rng.y);

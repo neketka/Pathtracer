@@ -103,7 +103,7 @@ public:
 	GpuSceneSystem() {}
 
 	virtual void start(ExtEngine& extEngine) override {
-		m_triBuffer = new GpuBuffer<GpuTri>(1024);
+		m_triBuffer = new GpuBuffer<GpuTri>(4194304);
 		m_matBuffer = new GpuBuffer<GpuMat>(16);
 
 		auto& cboxMeshes = extEngine.getSystem<AssetSystem>().findModel("cornellbox").meshes;
@@ -124,8 +124,8 @@ public:
 		}
 
 		std::vector<GpuMat> mats = {
-			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.0, 0.0)))) },
-			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) }
+			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) },
+			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.0, 1.0)))) }
 		};
 
 		m_triCount = tris.size();
