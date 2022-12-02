@@ -31,6 +31,11 @@ layout(std140, binding = 0) uniform Materials {
 	Material materials[64];
 };
 
+vec3 toCartesian(vec2 polar){
+	float s = sin(polar.y);
+	return vec3(s*cos(polar.x), s*sin(polar.x), cos(polar.y));
+}
+
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 	bool anyHit = false;
 	closest.anyHit = false;
@@ -113,10 +118,14 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 
 	if (anyHit) {
 		vec2 rm = unpackHalf2x16(floatBitsToUint(mat.colorRM.w));
+		vec3 n0 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos0normx.w)));
+		vec3 n1 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos1normy.w)));
+		vec3 n2 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos2normz.w)));
+		vec3 norm = closestInfo.bary.x * n0 + closestInfo.bary.y * n1 + closestInfo.bary.z * n2;
 
 		closest.t = closestInfo.t;
 		closest.pos = closestInfo.pos;
-		closest.normal = closestInfo.normal;
+		closest.normal = norm;
 		closest.color = mat.colorRM.xyz;
 		closest.roughness = rm.x;
 		closest.triIndex = closestTri;
