@@ -31,9 +31,10 @@ layout(std140, binding = 0) uniform Materials {
 	Material materials[64];
 };
 
-vec3 toCartesian(vec2 polar){
-	float s = sin(polar.y);
-	return vec3(s*cos(polar.x), s*sin(polar.x), cos(polar.y));
+vec3 toCartesian(vec2 plr){
+	float st = sin(plr.y);
+
+	return vec3(st*cos(plr.x), st*sin(plr.x), cos(plr.y));
 }
 
 bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
@@ -121,7 +122,7 @@ bool traceScene(Ray r, bool anyReturn, out IntersectionInfo closest) {
 		vec3 n0 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos0normx.w)));
 		vec3 n1 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos1normy.w)));
 		vec3 n2 = toCartesian(unpackHalf2x16(floatBitsToUint(tri.pos2normz.w)));
-		vec3 norm = closestInfo.bary.x * n0 + closestInfo.bary.y * n1 + closestInfo.bary.z * n2;
+		vec3 norm = closestInfo.bary.z * n0 + closestInfo.bary.x * n1 + closestInfo.bary.y * n2;
 
 		closest.t = closestInfo.t;
 		closest.pos = closestInfo.pos;
@@ -178,7 +179,7 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 
 		Ray sr;
 		sr.pos = rayInfo.pos;
-		sr.start = 0.000001;
+		sr.start = 0.001;
 		sr.dir = (sampl - sr.pos) / dist;
 		sr.dirInv = 1.0 / sr.dir;
 		sr.end = dist;
@@ -186,7 +187,8 @@ vec3 getRadiance(Ray r, out IntersectionInfo rayInfo) {
 		float shadow = float(!traceScene(sr, true, srInfo));
 		vec3 ggxTerm = getGgx(r, L, NdotL, rayInfo);
 
-		return color * lightColor * shadow * (rayInfo.color + ggxTerm) * NdotL * lightDistRecip * lightDistRecip;
+		vec3 rad = color * lightColor * shadow * (rayInfo.color * (1.0 - rayInfo.metalness) + ggxTerm) * NdotL;
+		return max(vec3(0.0), rad);
 	}
 
 	return vec3(0.5294, 0.8078, 0.9216);
@@ -209,35 +211,37 @@ void main() {
 
 	vec3 curColor = vec3(1.0);
 
-	bool diffuseRay = random > 0.5;
-
 	for (int i = 0; i < bounces; ++i) {
+		vec3 curNormal = rayInfo.normal;
+		float curRoughness = rayInfo.roughness;
+		float curMetalness = rayInfo.metalness;
+
+		float diffuseChance = 0.5 * (1.0 - curMetalness);
+		bool diffuseRay = random < diffuseChance;
+
 		if (!rayInfo.anyHit) {
 			break;
 		}
 
 		curColor *= rayInfo.color;
 
-		vec3 curNormal = rayInfo.normal;
-		float curRoughness = rayInfo.roughness;
-		float curMetalness = rayInfo.metalness;
-
-		r.start = 0.000001;
+		r.start = 0.001;
 		r.end = 1000000.0;
 		r.pos = rayInfo.pos;
 
-		vec2 randVal = vec2(rand(vec2(random) + r.dir.xy), rand(vec2(random) + r.dir.yz));
+		vec2 randVal = vec2(random) + r.dir.xy;
 
 		if (diffuseRay) {
-			float NdotL = max(0.0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
-			vec3 rad = getRadiance(r, rayInfo);
 			r.dir = hemisphereVector(curNormal, randVal);
 			r.dirInv = 1.0 / r.dir;
+
+			vec3 rad = getRadiance(r, rayInfo);
+			float NdotL = max(0, dot(curNormal, normalize(rayInfo.pos - r.pos)));
 			
-			indirectLight += rad * curColor * NdotL / 0.5;
+			indirectLight += rad * curColor * NdotL * (1.0 - curMetalness) / (diffuseChance);
 		} else {
 			// Randomly sample the NDF to get a microfacet in our BRDF 
-			vec3 H = normalize(getGGXMicrofacet(randVal, rayInfo.roughness, curNormal));
+			vec3 H = normalize(getGGXMicrofacet(vec2(rand(randVal.xy), rand(randVal.yx)), rayInfo.roughness, curNormal));
 
 			vec3 V = -r.dir;
   
@@ -255,8 +259,8 @@ void main() {
 			// Compute our color by tracing a ray in this direction
 			vec3 bounceColor = getRadiance(r, rayInfo);
 
-			float D = ggxNormalDistribution(NdotH, curRoughness);
-			float G = ggxSchlickMaskingTerm(NdotL, NdotV, curRoughness);
+			float D = ggxNormalDistribution(NdotH, 1 - curRoughness);
+			float G = ggxSchlickMaskingTerm(NdotL, NdotV, 1 - curRoughness);
 			vec3 F = schlickFresnel(mix(vec3(0.04), curColor, curMetalness), LdotH);
 
 	    vec3 ggxTerm = D*G*F / (4 * NdotV * NdotL);
@@ -266,7 +270,7 @@ void main() {
 
 			// Accumulate color:  ggx-BRDF * lightIn * NdotL / probability-of-sampling
 			//    -> Note: Should really cancel and simplify the math above
-			indirectLight += max(vec3(0.0), NdotL * curColor * bounceColor * ggxTerm / (ggxProb * 0.5));
+			indirectLight += max(vec3(0.0), NdotL * curColor * bounceColor * ggxTerm / (ggxProb * (1.0 - diffuseChance)));
 		}
 	}
 

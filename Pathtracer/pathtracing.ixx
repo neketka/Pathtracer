@@ -69,7 +69,7 @@ public:
 	int bounces = 2;
 	int shadowSamples = 1;
 	float jitter = 0.5f;
-	float lightRadius = 1.f;
+	float lightRadius = 2.f;
 	bool progressive = true;
 };
 
@@ -104,7 +104,7 @@ public:
 					.uniform(4, m_samples == 1 ? glm::min(1, m_config.bounces) : m_config.bounces)
 					.uniform(5, m_config.lightRadius)
 					.uniform(6, glm::vec3(0.f, 3.f, 0.f))
-					.uniform(7, glm::vec3(1.f, 1.f, 1.f) * 10.f)
+					.uniform(7, glm::vec3(1.f, 1.f, 1.f) * 1.0f)
 					.storageBuffer(0, gpuTris)
 					.storageBuffer(1, gpuBvh)
 					.uniformBuffer(0, gpuMats)

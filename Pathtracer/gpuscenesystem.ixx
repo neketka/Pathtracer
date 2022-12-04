@@ -39,13 +39,12 @@ export struct GpuMat
 
 float toPolar(glm::vec3 normal)
 {
-	glm::vec3 p = glm::gtx::polar_coordinates::polar(normal);
-	return glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(p.y, p.z)));
+	glm::vec3 p = glm::polar(normal + glm::vec3(0.001));
+	return glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(p.x, p.y)));
 }
 
 GpuTri toGpuTri(ObjTriangle &tri, int matId)
 {
-	glm::vec3 normal = (tri.normal0 + tri.normal1 + tri.normal2) / 3.f;
 	auto n0 = toPolar(tri.normal0);
 	auto n1 = toPolar(tri.normal1);
 	auto n2 = toPolar(tri.normal2);
@@ -126,33 +125,60 @@ public:
 
 	virtual void start(ExtEngine &extEngine) override
 	{
-		m_triBuffer = new GpuBuffer<GpuTri>(1024);
+		m_triBuffer = new GpuBuffer<GpuTri>(300000);
 		m_matBuffer = new GpuBuffer<GpuMat>(16);
 
-		auto &cboxMeshes = extEngine.getSystem<AssetSystem>().findModel("cornellbox").meshes;
-		auto &monkeyMeshes = extEngine.getSystem<AssetSystem>().findModel("suzanne").meshes;
+		auto &cboxMeshes = extEngine.getSystem<AssetSystem>().findModel("scene").meshes;
 
 		std::vector<GpuTri> tris;
 
-		for (int i = 0; i < monkeyMeshes.size(); ++i)
-		{
-			for (auto &tri : monkeyMeshes[i])
-			{
-				tris.push_back(toGpuTri(tri, 0));
-			}
-		}
-
 		for (int i = 0; i < cboxMeshes.size(); ++i)
 		{
+			int matNum = 0;
+
+			if (i == 0) {
+				matNum = 0;
+			}
+			else if (i == 1) {
+				matNum = 1;
+			}
+			else if (i == 2) {
+				matNum = 2;
+			}
+			else if (i == 2) {
+				matNum = 2;
+			}
+			else if (i >= 3 && i <= 10 && i != 7) {
+				matNum = 3;
+			}
+			else if (i == 7) {
+				matNum = 4;
+			}
+			else if (i == 11) {
+				matNum = 7;
+			}
+			else if (i == 12) {
+				matNum = 5;
+			}
+			else if (i == 13) {
+				matNum = 6;
+			}
+
 			for (auto &tri : cboxMeshes[i])
 			{
-				tris.push_back(toGpuTri(tri, 1));
+				tris.push_back(toGpuTri(tri, matNum));
 			}
 		}
 
 		std::vector<GpuMat> mats = {
-			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.0, 0.0)))) },
-			{ .colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 1.0)))) }
+			{ .colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.1, 1.0)))) }, // smallbox 0
+			{.colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // wall 1
+			{ .colorRM = glm::vec4(0.41f, 0.05f, 0.67f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // dragon 2
+			{.colorRM = glm::vec4(1.f, 0.0f, 0.0f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // amogusRed 3
+			{.colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.05, 1.0)))) }, // amogusVisor 4
+			{.colorRM = glm::vec4(0.19f, 0.62f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 1.0)))) }, // teapot 5
+			{.colorRM = glm::vec4(0.28f, 0.8f, 0.37f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // bunny 6
+			{.colorRM = glm::vec4(0.8f, 0.0f, 0.0f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 0.0)))) }, // monkey 7
 		};
 
 		m_triCount = tris.size();
