@@ -216,7 +216,7 @@ void main() {
 		float curRoughness = rayInfo.roughness;
 		float curMetalness = rayInfo.metalness;
 
-		float diffuseChance = 0.5 * (1.0 - curMetalness);
+		float diffuseChance = clamp(0.5 * (1.0 - curMetalness), 0.0, 1.0);
 		bool diffuseRay = random < diffuseChance;
 
 		if (!rayInfo.anyHit) {

@@ -175,7 +175,7 @@ public:
 			{.colorRM = glm::vec4(0.8f, 0.8f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // wall 1
 			{ .colorRM = glm::vec4(0.41f, 0.05f, 0.67f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // dragon 2
 			{.colorRM = glm::vec4(1.f, 0.0f, 0.0f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // amogusRed 3
-			{.colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.05, 1.0)))) }, // amogusVisor 4
+			{.colorRM = glm::vec4(1.f, 1.f, 1.f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.025, 1.0)))) }, // amogusVisor 4
 			{.colorRM = glm::vec4(0.19f, 0.62f, 0.8f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 1.0)))) }, // teapot 5
 			{.colorRM = glm::vec4(0.28f, 0.8f, 0.37f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(1.0, 0.0)))) }, // bunny 6
 			{.colorRM = glm::vec4(0.8f, 0.0f, 0.0f, glm::uintBitsToFloat(glm::packHalf2x16(glm::vec2(0.5, 0.0)))) }, // monkey 7
